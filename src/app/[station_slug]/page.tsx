@@ -20,7 +20,7 @@ interface StationPageProps {
 export async function generateStaticParams() {
   const { stations } = await getStations();
   
-  return stations.map((station) => ({
+  return stations.map((station: IStation) => ({
     station_slug: station.slug,
   }));
 }

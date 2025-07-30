@@ -141,7 +141,7 @@ const ContextProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     }
-  }, [pathname, ctx.stations]);
+  }, [pathname, ctx.stations, ctx.selectedStation]);
 
   return (
     <Context.Provider value={{ ctx, setCtx, setSelectedStation }}>

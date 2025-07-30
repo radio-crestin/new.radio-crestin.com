@@ -147,7 +147,7 @@ export default function RadioPlayer() {
         return 0;
       }
     });
-  }, [station, streamType]);
+  }, [station, streamType, stationStreams, stationTitle]);
 
   const loadHLS = React.useCallback((
     hls_stream_url: string,
@@ -228,7 +228,7 @@ export default function RadioPlayer() {
         retryMechanism();
       });
     }
-  }, [streamType, station, retryMechanism, getStreamUrl, loadHLS]);
+  }, [streamType, station, retryMechanism, getStreamUrl, loadHLS, stationTitle]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;

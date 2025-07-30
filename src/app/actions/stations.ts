@@ -14,7 +14,7 @@ export async function getStationsData() {
   const { stations } = await getStations();
 
   // Add is_favorite property to each station
-  const stationsWithFavorite = stations.map((station) => ({
+  const stationsWithFavorite = stations.map((station: any) => ({
     ...station,
     is_favorite: false,
     // Convert singular to array for backward compatibility
@@ -29,7 +29,7 @@ export async function getStationBySlug(slug: string) {
   const { stations } = await getStations();
 
   // Add is_favorite property to each station
-  const stationsWithFavorite = stations.map((station) => ({
+  const stationsWithFavorite = stations.map((station: any) => ({
     ...station,
     is_favorite: false,
     // Convert singular to array for backward compatibility
