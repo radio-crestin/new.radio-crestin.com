@@ -1,3 +1,4 @@
+"use server";
 import { CONSTANTS } from "@/constants/constants";
 import { Bugsnag } from "@/utils/bugsnag";
 
@@ -96,7 +97,6 @@ export const getStations = async () => {
       console.error("Error fetching stations:", error);
       return { data: { stations: [] } };
     });
-  console.log("getStations response:", response);
   return {
     stations: response?.data?.stations || [],
   };

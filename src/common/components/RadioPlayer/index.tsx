@@ -11,7 +11,6 @@ import { Context } from "@/context/ContextProvider";
 import usePlayer from "@/store/usePlayer";
 import { PLAYBACK_STATE } from "@/models/enum";
 import { toast } from "react-toastify";
-import { trackListen } from "@/services/trackListen";
 import Heart from "@/icons/Heart";
 import useFavourite from "@/store/useFavourite";
 import { Bugsnag } from "@/utils/bugsnag";
@@ -168,21 +167,7 @@ export default function RadioPlayer() {
         }
         break;
     }
-
-    if (playbackState === PLAYBACK_STATE.PLAYING) {
-      trackListen({
-        station_id: station.id as unknown as bigint,
-      });
-    }
-    const timer = setInterval(() => {
-      if (playbackState === PLAYBACK_STATE.PLAYING) {
-        trackListen({
-          station_id: station.id as unknown as bigint,
-        });
-      }
-    }, 30 * 1000);
-    return () => clearInterval(timer);
-  }, [playbackState]);
+  }, [hlsInstance, playbackState, resetAndReloadStream]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -412,7 +397,7 @@ export default function RadioPlayer() {
           <div className={`${styles.station_info} ${styles.two_lines}`}>
             <h2 className={styles.station_title}>{station.title}</h2>
             <p className={styles.song_name}>
-              {station?.now_playing?.song.name}
+              {station?.now_playing?.song?.name}
               {station?.now_playing?.song?.artist?.name && (
                 <span className={styles.artist_name}>
                   {" · "}

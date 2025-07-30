@@ -40,7 +40,7 @@ const StationItem = (data: IStation) => {
       <div className={styles.station_details}>
         <p className={styles.station_name}>{data.title}</p>
         <p className={styles.song_name}>
-          {data?.now_playing?.song.name}
+          {data?.now_playing?.song?.name}
           {data?.now_playing?.song?.artist?.name && (
             <span className={styles.artist_name}>
               {" · "}
