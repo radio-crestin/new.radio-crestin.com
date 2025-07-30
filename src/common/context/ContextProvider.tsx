@@ -1,7 +1,10 @@
 "use client";
 
-import { createContext, useReducer, useCallback } from "react";
+import { createContext, useReducer, useCallback, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { IStationExtended } from "@/common/models/Station";
+import { getStations } from "@/common/services/getStations";
+import { Bugsnag } from "@/common/utils/bugsnag";
 
 interface ContextState {
   stations: IStationExtended[];
@@ -49,10 +52,56 @@ const initialState: ContextState = {
 
 const ContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [ctx, setCtx] = useReducer(reducer, initialState);
+  const pathname = usePathname();
 
   const setSelectedStation = useCallback((station: IStationExtended | null) => {
     setCtx({ selectedStation: station });
   }, []);
+
+  // Auto-refresh stations every 10 seconds
+  useEffect(() => {
+    const fetchStationsData = async () => {
+      try {
+        const data = await getStations();
+        if (data?.stations && data?.stations.length > 0) {
+          setCtx({
+            stations: data.stations,
+          });
+        }
+      } catch (error) {
+        Bugsnag.notify(
+          new Error(
+            `Failed to fetch stations - error: ${JSON.stringify(
+              error,
+              null,
+              2,
+            )}`,
+          ),
+        );
+      }
+    };
+
+    fetchStationsData();
+    const intervalId = setInterval(fetchStationsData, 10000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Update selected station based on pathname
+  useEffect(() => {
+    const station_slug = pathname?.split('/')[1];
+    if (station_slug && ctx?.stations) {
+      const selectedStationIndex = ctx.stations.findIndex(
+        (s: IStationExtended) => s.slug === station_slug,
+      );
+
+      if (selectedStationIndex !== -1) {
+        setCtx({
+          selectedStation: ctx.stations[selectedStationIndex],
+        });
+      }
+    }
+  }, [pathname, ctx.stations]);
 
   return (
     <Context.Provider value={{ ctx, setCtx, setSelectedStation }}>
