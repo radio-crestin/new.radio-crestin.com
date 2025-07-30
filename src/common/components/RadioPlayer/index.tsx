@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useContext, useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import Hls from "hls.js";
 import useSpaceBarPress from "@/hooks/useSpaceBarPress";
 import { Loading } from "@/icons/Loading";
@@ -25,7 +25,11 @@ enum STREAM_TYPE {
 const MAX_MEDIA_RETRIES = 20;
 
 export default function RadioPlayer() {
-  const { ctx } = useContext(Context);
+  const context = useContext(Context);
+  if (!context) {
+    throw new Error("RadioPlayer must be used within ContextProvider");
+  }
+  const { ctx } = context;
   const { playerVolume, setPlayerVolume } = usePlayer();
   const [playbackState, setPlaybackState] = useState(PLAYBACK_STATE.STOPPED);
   const station = ctx.selectedStation;
@@ -37,6 +41,8 @@ export default function RadioPlayer() {
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
 
   useEffect(() => {
+    if (!station) return;
+    
     const preferredStreamOrder = [
       STREAM_TYPE.HLS,
       STREAM_TYPE.PROXY,
@@ -50,11 +56,12 @@ export default function RadioPlayer() {
     );
 
     setStreamType(availableStreamType || null);
-  }, [station.slug]);
+  }, [station?.slug, station?.station_streams]);
 
   useEffect(() => {
+    if (!station) return;
     setIsFavorite(favouriteItems.includes(station.slug));
-  }, [favouriteItems, station.slug]);
+  }, [favouriteItems, station?.slug]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -290,8 +297,8 @@ export default function RadioPlayer() {
   useEffect(() => {
     if ("mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: station.now_playing?.song?.name || station.title,
-        artist: station.now_playing?.song?.artist.name || "",
+        title: station.now_playing?.[0]?.song?.name || station.title,
+        artist: station.now_playing?.[0]?.song?.artist.name || "",
         artwork: [
           {
             src: station.thumbnail_url || CONSTANTS.DEFAULT_COVER,
@@ -376,7 +383,7 @@ export default function RadioPlayer() {
           <div className={styles.image_container}>
             <img
               src={
-                station.now_playing?.song?.thumbnail_url ||
+                station.now_playing?.[0]?.song?.thumbnail_url ||
                 station.thumbnail_url ||
                 CONSTANTS.DEFAULT_COVER
               }
@@ -397,11 +404,11 @@ export default function RadioPlayer() {
           <div className={`${styles.station_info} ${styles.two_lines}`}>
             <h2 className={styles.station_title}>{station.title}</h2>
             <p className={styles.song_name}>
-              {station?.now_playing?.song?.name}
-              {station?.now_playing?.song?.artist?.name && (
+              {station?.now_playing?.[0]?.song?.name}
+              {station?.now_playing?.[0]?.song?.artist?.name && (
                 <span className={styles.artist_name}>
                   {" · "}
-                  {station?.now_playing?.song?.artist?.name}
+                  {station?.now_playing?.[0]?.song?.artist?.name}
                 </span>
               )}
             </p>

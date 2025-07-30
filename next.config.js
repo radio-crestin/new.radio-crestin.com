@@ -1,6 +1,6 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
-  output: "export",
+  // Remove static export as we'll use server components
 };
 
 module.exports = nextConfig;

@@ -1,6 +1,22 @@
-import { createContext, useReducer } from "react";
+"use client";
 
-const Context = createContext<any>(null);
+import { createContext, useReducer, useCallback } from "react";
+import { IStationExtended } from "@/models/Station";
+
+interface ContextState {
+  stations: IStationExtended[];
+  selectedStation: IStationExtended | null;
+  favouriteStations: IStationExtended[];
+  stationGroups: any[];
+}
+
+interface ContextValue {
+  ctx: ContextState;
+  setCtx: (newState: Partial<ContextState>) => void;
+  setSelectedStation: (station: IStationExtended | null) => void;
+}
+
+const Context = createContext<ContextValue | null>(null);
 
 function isObject(item: any) {
   return item && typeof item === "object" && !Array.isArray(item);
@@ -24,17 +40,24 @@ const reducer = (ctx: any, newCtx: any) => {
   return deepMerge(ctx, newCtx);
 };
 
-const ContextProvider = ({
-  children,
-  initialState,
-}: {
-  children: any;
-  initialState: any;
-}) => {
+const initialState: ContextState = {
+  stations: [],
+  selectedStation: null,
+  favouriteStations: [],
+  stationGroups: [],
+};
+
+const ContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [ctx, setCtx] = useReducer(reducer, initialState);
 
+  const setSelectedStation = useCallback((station: IStationExtended | null) => {
+    setCtx({ selectedStation: station });
+  }, []);
+
   return (
-    <Context.Provider value={{ ctx, setCtx }}>{children}</Context.Provider>
+    <Context.Provider value={{ ctx, setCtx, setSelectedStation }}>
+      {children}
+    </Context.Provider>
   );
 };
 

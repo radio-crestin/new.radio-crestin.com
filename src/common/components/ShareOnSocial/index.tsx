@@ -6,7 +6,11 @@ import { Context } from "@/context/ContextProvider";
 
 
 export default function ShareOnSocial() {
-  const { ctx } = useContext(Context);
+  const context = useContext(Context);
+  if (!context) {
+    throw new Error("ShareOnSocial must be used within ContextProvider");
+  }
+  const { ctx } = context;
   const station = ctx?.selectedStation as IStation;
   if(!station) return null;
   const url = `https://share.radiocrestin.ro/${station.slug}`

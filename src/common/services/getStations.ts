@@ -1,103 +1,82 @@
 "use server";
-import { CONSTANTS } from "@/constants/constants";
 import { Bugsnag } from "@/utils/bugsnag";
+import { graphqlClient } from "@/graphql/client";
+import { GET_STATIONS_QUERY, GET_STATIONS_LIST_QUERY, GET_STATION_DETAIL_QUERY } from "@/graphql/queries";
+import { GetStationsQuery, GetStationsListQuery, GetStationDetailQuery } from "@/lib/graphql";
+import { cache } from "react";
 
-const query = `
-   query GetStations @cache_control(max_age: 30, max_stale: 30, stale_while_revalidate: 5) @cached(ttl: 0) {
-  stations(order_by: {order: asc}) {
-    id
-    order
-    title
-    website
-    slug
-    email
-    stream_url
-    proxy_stream_url
-    hls_stream_url
-    thumbnail_url
-    total_listeners
-    radio_crestin_listeners
-    description
-    description_action_title
-    description_link
-    feature_latest_post
-    station_streams {
-      type
-      stream_url
-    }
-    posts(limit: 1, order_by: {published: desc}) {
-      id
-      title
-      description
-      link
-      published
-    }
-    uptime {
-      is_up
-      latency_ms
-      timestamp
-    }
-    now_playing {
-      id
-      timestamp
-      song {
-        id
-        name
-        thumbnail_url
-        artist {
-          id
-          name
-          thumbnail_url
-        }
+// Cache the full stations query for 30 seconds
+export const getStations = cache(async () => {
+  try {
+    const data = await graphqlClient.request<GetStationsQuery>(
+      GET_STATIONS_QUERY,
+      {},
+      {
+        next: {
+          revalidate: 30, // Cache for 30 seconds
+        },
       }
-    }
-    reviews {
-      id
-      stars
-      message
-    }
+    );
+    
+    return {
+      stations: data.stations || [],
+      station_groups: data.station_groups || [],
+    };
+  } catch (error) {
+    Bugsnag.notify(
+      new Error("Getting stations error: " + JSON.stringify(error, null, 2))
+    );
+    console.error("Error fetching stations:", error);
+    return { stations: [], station_groups: [] };
   }
-  station_groups {
-    id
-    name
-    order
-    station_to_station_groups {
-      station_id
-      order
-    }
-  }
-}
-`;
+});
 
-export const getStations = async () => {
-  const endpoint = CONSTANTS.GRAPHQL_ENDPOINT;
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-        operationName: "GetStations",
-        variables: {},
-      query
-    }),
-  })
-    .then(async (response) => {
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+// Lightweight query for listing pages
+export const getStationsList = cache(async () => {
+  try {
+    const data = await graphqlClient.request<GetStationsQuery>(
+      GET_STATIONS_LIST_QUERY,
+      {},
+      {
+        next: {
+          revalidate: 30, // Cache for 30 seconds
+        },
       }
-      return await response.json();
-    })
-    .catch((error) => {
-      Bugsnag.notify(
-        new Error("Getting stations error: " + JSON.stringify(error, null, 2)),
-      );
-      console.error("Error fetching stations:", error);
-      return { data: { stations: [] } };
-    });
-  return {
-    stations: response?.data?.stations || [],
-  };
-};
+    );
+    
+    return {
+      stations: data.stations || [],
+      station_groups: data.station_groups || [],
+    };
+  } catch (error) {
+    Bugsnag.notify(
+      new Error("Getting stations list error: " + JSON.stringify(error, null, 2))
+    );
+    console.error("Error fetching stations list:", error);
+    return { stations: [], station_groups: [] };
+  }
+});
+
+// Get a specific station by slug
+export const getStationBySlug = cache(async (slug: string) => {
+  try {
+    const data = await graphqlClient.request<GetStationDetailQuery>(
+      GET_STATION_DETAIL_QUERY,
+      {},
+      {
+        next: {
+          revalidate: 30, // Cache for 30 seconds
+        },
+      }
+    );
+    
+    // Since we can't filter by slug in the query, we need to find it client-side
+    return data.stations?.find((station) => station.slug === slug) || null;
+  } catch (error) {
+    Bugsnag.notify(
+      new Error("Getting station by slug error: " + JSON.stringify(error, null, 2))
+    );
+    console.error("Error fetching station by slug:", error);
+    return null;
+  }
+});

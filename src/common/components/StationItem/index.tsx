@@ -11,7 +11,11 @@ import { useContext, useEffect, useState } from "react";
 import { Context } from "@/context/ContextProvider";
 
 const StationItem = (data: IStation) => {
-  const { ctx } = useContext(Context);
+  const context = useContext(Context);
+  if (!context) {
+    throw new Error("StationItem must be used within ContextProvider");
+  }
+  const { ctx } = context;
   const { favouriteItems, toggleFavourite } = useFavourite();
   const [isStationFavourite, setIsStationFavourite] = useState(false);
   const isActive = ctx.selectedStation?.slug === data.slug;
@@ -30,7 +34,7 @@ const StationItem = (data: IStation) => {
     >
       <div className={styles.image_container}>
         <img
-          src={data.now_playing?.song?.thumbnail_url || data?.thumbnail_url}
+          src={data.now_playing?.[0]?.song?.thumbnail_url || data?.thumbnail_url}
           alt={`${data.title} | radiocrestin.ro`}
           loading={"lazy"}
           height={110}
@@ -40,11 +44,11 @@ const StationItem = (data: IStation) => {
       <div className={styles.station_details}>
         <p className={styles.station_name}>{data.title}</p>
         <p className={styles.song_name}>
-          {data?.now_playing?.song?.name}
-          {data?.now_playing?.song?.artist?.name && (
+          {data?.now_playing?.[0]?.song?.name}
+          {data?.now_playing?.[0]?.song?.artist?.name && (
             <span className={styles.artist_name}>
               {" · "}
-              {data?.now_playing?.song?.artist?.name}
+              {data?.now_playing?.[0]?.song?.artist?.name}
             </span>
           )}
         </p>

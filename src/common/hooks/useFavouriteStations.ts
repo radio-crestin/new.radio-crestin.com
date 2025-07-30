@@ -1,10 +1,16 @@
+"use client";
+
 import { useContext, useEffect } from "react";
 import { IStation } from "@/models/Station";
 import { Context } from "@/context/ContextProvider";
 import useFavourite from "@/store/useFavourite";
 
 const useFavouriteStations = () => {
-  const { ctx, setCtx } = useContext(Context);
+  const context = useContext(Context);
+  if (!context) {
+    throw new Error("useFavouriteStations must be used within ContextProvider");
+  }
+  const { ctx, setCtx } = context;
   const { favouriteItems } = useFavourite();
   useEffect(() => {
     const favouriteStations: Array<IStation | any> =

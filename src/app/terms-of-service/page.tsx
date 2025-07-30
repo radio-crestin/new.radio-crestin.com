@@ -1,6 +1,13 @@
-import styles from "./styles.module.scss";
+import React from "react";
+import { Metadata } from "next";
+import styles from "./page.module.scss";
 
-export default function PrivacyPolicyPage() {
+export const metadata: Metadata = {
+  title: "Terms of Service - Radio Crestin",
+  description: "Terms of Service for Radio Crestin",
+};
+
+export default function TermsOfServicePage() {
     return (
         <div className={styles.container}>
             <h1>Terms and Conditions</h1>

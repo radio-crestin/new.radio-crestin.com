@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useContext, useEffect, useState } from "react";
-import { IStation } from "@/models/Station";
+import { IStationExtended } from "@/models/Station";
 import styles from "./styles.module.scss";
 import { Context } from "@/context/ContextProvider";
 import FavoriteItem from "@/components/FavoriteItem";
@@ -10,18 +10,27 @@ import { Magnify } from "@/icons/Magnify";
 import CloseIcon from "@/icons/CloseIcon";
 import WhatsAppBibleGroup from "@/components/WhatsAppBibleGroup";
 
-const Stations = () => {
-  const { ctx } = useContext(Context);
-  const [filteredStations, setFilteredStations] = useState(ctx.stations);
+interface StationsProps {
+  initialStations?: IStationExtended[];
+}
+
+const Stations = ({ initialStations }: StationsProps) => {
+  const context = useContext(Context);
+  if (!context) {
+    throw new Error("Stations must be used within ContextProvider");
+  }
+  const { ctx } = context;
+  const stations = ctx.stations.length > 0 ? ctx.stations : (initialStations || []);
+  const [filteredStations, setFilteredStations] = useState(stations);
   const [searchedValue, setSearchedValue] = useState("");
 
   useEffect(() => {
     if (searchedValue) {
       handleSearch();
     } else {
-      setFilteredStations(ctx.stations);
+      setFilteredStations(stations);
     }
-  }, [ctx.stations]);
+  }, [stations]);
 
   useEffect(() => {
     if (
@@ -45,22 +54,22 @@ const Stations = () => {
     let newFilteredStations = [];
     // Filter by station title
     newFilteredStations.push(
-      ...ctx.stations.filter((station: IStation) =>
+      ...stations.filter((station: IStationExtended) =>
         station.title.toLowerCase().includes(searchedValue),
       ),
     );
 
     // Filter by song name
     newFilteredStations.push(
-      ...ctx.stations.filter((station: IStation) =>
-        station.now_playing?.song?.name.toLowerCase().includes(searchedValue),
+      ...stations.filter((station: IStationExtended) =>
+        station.now_playing?.[0]?.song?.name.toLowerCase().includes(searchedValue),
       ),
     );
 
     // Filter by artist name
     newFilteredStations.push(
-      ...ctx.stations.filter((station: IStation) =>
-        station.now_playing?.song?.artist?.name
+      ...stations.filter((station: IStationExtended) =>
+        station.now_playing?.[0]?.song?.artist?.name
           .toLowerCase()
           .includes(searchedValue),
       ),
@@ -110,7 +119,7 @@ const Stations = () => {
         <h1>Stații favorite:</h1>
         {ctx.favouriteStations.length > 0 ? (
           <div className={styles.stations_container}>
-            {ctx.favouriteStations.map((station: IStation) => {
+            {ctx.favouriteStations.map((station: IStationExtended) => {
               return (
                 <React.Fragment key={`favourite-${station.id}-${station.slug}`}>
                   <FavoriteItem {...station} />
@@ -166,7 +175,7 @@ const Stations = () => {
             <strong>{searchedValue}</strong>.
           </div>
         ) : (
-          filteredStations.map((station: IStation) => (
+          filteredStations.map((station: IStationExtended) => (
             <React.Fragment key={`${station.id}-${station.slug}`}>
               <StationItem {...station} />
             </React.Fragment>

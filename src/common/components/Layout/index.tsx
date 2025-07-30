@@ -1,3 +1,5 @@
+"use client";
+
 import Head from "next/head";
 import React, { useContext } from "react";
 import AnalyticsScripts from "@/components/AnalyticsScripts";
@@ -19,7 +21,11 @@ const Layout = ({
   children: React.ReactNode;
   fullURL: string;
 }) => {
-  const { ctx } = useContext(Context);
+  const context = useContext(Context);
+  if (!context) {
+    throw new Error("Layout must be used within ContextProvider");
+  }
+  const { ctx } = context;
   const { selectedStation } = ctx;
 
   return (
@@ -36,8 +42,8 @@ const Layout = ({
                 name: `${selectedStation.title} - Radio Crestin`,
                 aggregateRating: {
                   "@type": "AggregateRating",
-                  ratingValue: getStationRating(ctx.selectedStation?.reviews),
-                  reviewCount: selectedStation.reviews.length
+                  ratingValue: getStationRating(ctx.selectedStation?.reviews || []),
+                  reviewCount: selectedStation.reviews?.length || 0
                 }
               })
             }}

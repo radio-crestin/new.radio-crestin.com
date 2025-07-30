@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import React, { useContext } from "react";
 
@@ -31,7 +33,11 @@ const Navigation = () => (
 );
 
 const ContentLeft = () => {
-  const { ctx } = useContext(Context);
+  const context = useContext(Context);
+  if (!context) {
+    throw new Error("Component must be used within ContextProvider");
+  }
+  const { ctx } = context;
   const { selectedStation } = ctx;
 
   if (!selectedStation) return null;
@@ -40,11 +46,11 @@ const ContentLeft = () => {
     <div className={styles.left_content}>
       {ctx.selectedStation && (
         <>
-          {selectedStation.now_playing?.song?.thumbnail_url ? (
+          {selectedStation.now_playing?.[0]?.song?.thumbnail_url ? (
             <div className={styles.container_img_plus_thumb}>
               <img
                 loading={"lazy"}
-                src={selectedStation.now_playing?.song?.thumbnail_url}
+                src={selectedStation.now_playing?.[0]?.song?.thumbnail_url}
                 alt={selectedStation.title}
                 width={230}
                 height={230}
@@ -69,10 +75,10 @@ const ContentLeft = () => {
           )}
           <div className={styles.station_info}>
             <h2 className={styles.station_title}>
-              {selectedStation.now_playing?.song?.name || selectedStation.title}
+              {selectedStation.now_playing?.[0]?.song?.name || selectedStation.title}
             </h2>
             <p className={styles.station_artist}>
-              {selectedStation.now_playing?.song?.artist.name}
+              {selectedStation.now_playing?.[0]?.song?.artist.name}
             </p>
           </div>
         </>
@@ -82,7 +88,11 @@ const ContentLeft = () => {
 };
 
 const ContentRight = () => {
-  const { ctx } = useContext(Context);
+  const context = useContext(Context);
+  if (!context) {
+    throw new Error("Component must be used within ContextProvider");
+  }
+  const { ctx } = context;
 
   return (
     <div className={styles.right_content}>
@@ -98,7 +108,7 @@ const ContentRight = () => {
         </div>
         <div className={styles.rating_wrapper}>
           <Rating
-            score={getStationRating(ctx.selectedStation?.reviews)}
+            score={getStationRating(ctx.selectedStation?.reviews || [])}
             starHeight={22}
           />
           <span>({ctx.selectedStation?.reviews?.length || 0} recenzii)</span>

@@ -10,9 +10,15 @@ import Heart from "@/icons/Heart";
 import { Context } from "@/context/ContextProvider";
 
 const FavouriteItem = (data: IStation) => {
-  const { ctx } = useContext(Context);
+  const context = useContext(Context);
   const { favouriteItems, toggleFavourite } = useFavourite();
   const [isStationFavourite, setIsStationFavourite] = useState(false);
+  
+  if (!context) {
+    throw new Error("FavouriteItem must be used within ContextProvider");
+  }
+  
+  const { ctx } = context;
   const isActive = ctx.selectedStation?.slug === data.slug;
 
   useEffect(() => {
@@ -38,11 +44,11 @@ const FavouriteItem = (data: IStation) => {
         <div className={styles.station_details}>
           <p className={styles.station_name}>{data.title}</p>
           <p className={styles.song_name}>
-            {data?.now_playing?.song.name}
-            {data?.now_playing?.song?.artist?.name && (
+            {data?.now_playing?.[0]?.song?.name}
+            {data?.now_playing?.[0]?.song?.artist?.name && (
               <span className={styles.artist_name}>
                 {" · "}
-                {data?.now_playing?.song?.artist?.name}
+                {data?.now_playing?.[0]?.song?.artist?.name}
               </span>
             )}
           </p>
