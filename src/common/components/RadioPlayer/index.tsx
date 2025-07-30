@@ -56,12 +56,12 @@ export default function RadioPlayer() {
     );
 
     setStreamType(availableStreamType || null);
-  }, [station?.slug, station?.station_streams]);
+  }, [station]);
 
   useEffect(() => {
     if (!station) return;
     setIsFavorite(favouriteItems.includes(station.slug));
-  }, [favouriteItems, station?.slug]);
+  }, [favouriteItems, station]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -69,173 +69,15 @@ export default function RadioPlayer() {
     audio.volume = playerVolume / 100;
   }, [playerVolume]);
 
-  const getStreamUrl = (type: STREAM_TYPE | null) => {
+  const getStreamUrl = React.useCallback((type: STREAM_TYPE | null) => {
     if (!type || !station) return null;
     const stream = station.station_streams.find(
       (stream: IStationStreams) => stream.type === type,
     );
     return stream?.stream_url || null;
-  };
+  }, [station]);
 
-  const loadHLS = (
-    hls_stream_url: string,
-    audio: HTMLAudioElement,
-    hls: Hls,
-  ) => {
-    if (Hls.isSupported()) {
-      hls.loadSource(hls_stream_url);
-      hls.attachMedia(audio);
-    } else if (audio.canPlayType("application/vnd.apple.mpegurl")) {
-      audio.src = hls_stream_url;
-    }
-
-    hls.on(Hls.Events.AUDIO_TRACK_LOADING, function () {
-      setPlaybackState(PLAYBACK_STATE.BUFFERING);
-    });
-
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      setPlaybackState(PLAYBACK_STATE.BUFFERING);
-      audio.addEventListener(
-        "canplaythrough",
-        function () {
-          audio.play().catch(() => {
-            setPlaybackState(PLAYBACK_STATE.STOPPED);
-          });
-        },
-        { once: true },
-      );
-    });
-
-    hls.on(Hls.Events.ERROR, function (event, data) {
-      if (data.fatal) {
-        Bugsnag.notify(
-          new Error(
-            `HLS Fatal error - station.title: ${
-              station?.title
-            }, error: ${JSON.stringify(
-              data,
-              null,
-              2,
-            )} - event: ${JSON.stringify(event, null, 2)}`,
-          ),
-        );
-        retryMechanism();
-      }
-    });
-  };
-
-  const resetAndReloadStream = () => {
-    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio || !streamType || !station) return;
-
-    if (hlsInstance) {
-      hlsInstance.destroy();
-    }
-
-    const streamUrl = getStreamUrl(streamType);
-    if (!streamUrl) {
-      retryMechanism();
-      return;
-    }
-
-    if (streamType === STREAM_TYPE.HLS) {
-      const newHls = new Hls();
-      setHlsInstance(newHls);
-      loadHLS(streamUrl, audio, newHls);
-    } else {
-      audio.src = streamUrl;
-      audio.load();
-      audio.play().catch((error) => {
-        Bugsnag.notify(
-          new Error(
-            `Error reloading stream - station.title: ${
-              station?.title
-            }, error: ${JSON.stringify(error, null, 2)}`,
-          ),
-        );
-        retryMechanism();
-      });
-    }
-  };
-
-  useEffect(() => {
-    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio) return;
-
-    switch (playbackState) {
-      case PLAYBACK_STATE.STARTED:
-        resetAndReloadStream();
-        break;
-      case PLAYBACK_STATE.STOPPED:
-        audio.pause();
-        if (hlsInstance) {
-          hlsInstance.stopLoad();
-          hlsInstance.detachMedia();
-        }
-        break;
-    }
-  }, [hlsInstance, playbackState, streamType, station]);
-
-  useEffect(() => {
-    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio) return;
-    audio.volume = playerVolume / 100;
-
-    return () => {
-      setRetries(20);
-    };
-  }, [station?.slug]);
-
-  useEffect(() => {
-    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio || !streamType) return;
-
-    const streamUrl = getStreamUrl(streamType);
-    if (!streamUrl) {
-      retryMechanism();
-      return;
-    }
-
-    const hls = new Hls();
-    setHlsInstance(hls);
-
-    switch (streamType) {
-      case STREAM_TYPE.HLS:
-        loadHLS(streamUrl, audio, hls);
-        break;
-      case STREAM_TYPE.PROXY:
-        audio.src = streamUrl;
-        audio.play().catch((error) => {
-          Bugsnag.notify(
-            new Error(
-              `Switching from HLS -> PROXY error:157 - station.title: ${
-                station?.title
-              }, error: ${JSON.stringify(error, null, 2)}`,
-            ),
-          );
-          retryMechanism();
-        });
-        break;
-      case STREAM_TYPE.ORIGINAL:
-        audio.src = streamUrl;
-        audio.play().catch((error) => {
-          Bugsnag.notify(
-            new Error(
-              `Switching from PROXY to ORIGINAL error:168 - station.title: ${
-                station?.title
-              }, error: ${JSON.stringify(error, null, 2)}`,
-            ),
-          );
-          retryMechanism();
-        });
-    }
-
-    return () => {
-      hls.destroy();
-    };
-  }, [streamType, station?.slug]);
-
-  const retryMechanism = () => {
+  const retryMechanism = React.useCallback(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
     if (!audio || !station) return;
 
@@ -295,7 +137,178 @@ export default function RadioPlayer() {
         return 0;
       }
     });
-  };
+  }, [station, streamType]);
+
+  const loadHLS = React.useCallback((
+    hls_stream_url: string,
+    audio: HTMLAudioElement,
+    hls: Hls,
+  ) => {
+    if (Hls.isSupported()) {
+      hls.loadSource(hls_stream_url);
+      hls.attachMedia(audio);
+    } else if (audio.canPlayType("application/vnd.apple.mpegurl")) {
+      audio.src = hls_stream_url;
+    }
+
+    hls.on(Hls.Events.AUDIO_TRACK_LOADING, function () {
+      setPlaybackState(PLAYBACK_STATE.BUFFERING);
+    });
+
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      setPlaybackState(PLAYBACK_STATE.BUFFERING);
+      audio.addEventListener(
+        "canplaythrough",
+        function () {
+          audio.play().catch(() => {
+            setPlaybackState(PLAYBACK_STATE.STOPPED);
+          });
+        },
+        { once: true },
+      );
+    });
+
+    hls.on(Hls.Events.ERROR, function (event, data) {
+      if (data.fatal) {
+        Bugsnag.notify(
+          new Error(
+            `HLS Fatal error - station.title: ${
+              station?.title
+            }, error: ${JSON.stringify(
+              data,
+              null,
+              2,
+            )} - event: ${JSON.stringify(event, null, 2)}`,
+          ),
+        );
+        retryMechanism();
+      }
+    });
+  }, [station?.title, retryMechanism]);
+
+  const resetAndReloadStream = React.useCallback(() => {
+    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
+    if (!audio || !streamType || !station) return;
+
+    if (hlsInstance) {
+      hlsInstance.destroy();
+    }
+
+    const streamUrl = getStreamUrl(streamType);
+    if (!streamUrl) {
+      retryMechanism();
+      return;
+    }
+
+    if (streamType === STREAM_TYPE.HLS) {
+      const newHls = new Hls();
+      setHlsInstance(newHls);
+      loadHLS(streamUrl, audio, newHls);
+    } else {
+      audio.src = streamUrl;
+      audio.load();
+      audio.play().catch((error) => {
+        Bugsnag.notify(
+          new Error(
+            `Error reloading stream - station.title: ${
+              station?.title
+            }, error: ${JSON.stringify(error, null, 2)}`,
+          ),
+        );
+        retryMechanism();
+      });
+    }
+  }, [streamType, station, hlsInstance, retryMechanism, getStreamUrl, loadHLS]);
+
+  useEffect(() => {
+    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
+    if (!audio) return;
+
+    switch (playbackState) {
+      case PLAYBACK_STATE.STARTED:
+        resetAndReloadStream();
+        break;
+      case PLAYBACK_STATE.STOPPED:
+        audio.pause();
+        if (hlsInstance) {
+          hlsInstance.stopLoad();
+          hlsInstance.detachMedia();
+        }
+        break;
+    }
+  }, [playbackState, resetAndReloadStream, hlsInstance]);
+
+  useEffect(() => {
+    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
+    if (!audio) return;
+    audio.volume = playerVolume / 100;
+
+    return () => {
+      setRetries(20);
+    };
+  }, [station?.slug, playerVolume]);
+
+  useEffect(() => {
+    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
+    if (!audio || !streamType) return;
+
+    const streamUrl = getStreamUrl(streamType);
+    if (!streamUrl) {
+      retryMechanism();
+      return;
+    }
+
+    const hls = new Hls();
+    setHlsInstance(hls);
+
+    switch (streamType) {
+      case STREAM_TYPE.HLS:
+        loadHLS(streamUrl, audio, hls);
+        break;
+      case STREAM_TYPE.PROXY:
+        audio.src = streamUrl;
+        audio.play().catch((error) => {
+          Bugsnag.notify(
+            new Error(
+              `Switching from HLS -> PROXY error:157 - station.title: ${
+                station?.title
+              }, error: ${JSON.stringify(error, null, 2)}`,
+            ),
+          );
+          retryMechanism();
+        });
+        break;
+      case STREAM_TYPE.ORIGINAL:
+        audio.src = streamUrl;
+        audio.play().catch((error) => {
+          Bugsnag.notify(
+            new Error(
+              `Switching from PROXY to ORIGINAL error:168 - station.title: ${
+                station?.title
+              }, error: ${JSON.stringify(error, null, 2)}`,
+            ),
+          );
+          retryMechanism();
+        });
+    }
+
+    return () => {
+      hls.destroy();
+    };
+  }, [streamType, station?.slug, getStreamUrl, loadHLS, retryMechanism, station?.title]);
+
+  const nextRandomStation = React.useCallback(() => {
+    const upStations = ctx.stations.filter(
+      (station: any) => station.uptime.is_up === true,
+    );
+
+    const currentIndex = upStations.findIndex((s: any) => s.id === station?.id);
+
+    const nextIndex = currentIndex + 1;
+    const nextStation = upStations[nextIndex % upStations.length];
+
+    router.push(`/${nextStation.slug}`);
+  }, [ctx.stations, station?.id, router]);
 
   useEffect(() => {
     if ("mediaSession" in navigator && station) {
@@ -327,7 +340,7 @@ export default function RadioPlayer() {
         history.back();
       });
     }
-  }, [station]);
+  }, [station, nextRandomStation]);
 
   useSpaceBarPress(() => {
     if (
@@ -342,19 +355,6 @@ export default function RadioPlayer() {
       setPlaybackState(PLAYBACK_STATE.STARTED);
     }
   });
-
-  const nextRandomStation = () => {
-    const upStations = ctx.stations.filter(
-      (station: any) => station.uptime.is_up === true,
-    );
-
-    const currentIndex = upStations.findIndex((s: any) => s.id === station?.id);
-
-    const nextIndex = currentIndex + 1;
-    const nextStation = upStations[nextIndex % upStations.length];
-
-    router.push(`/${nextStation.slug}`);
-  };
 
   const renderPlayButtonSvg = () => {
     switch (playbackState) {

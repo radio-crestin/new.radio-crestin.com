@@ -41,7 +41,7 @@ const ContentCenter = () => {
         <div className={styles.daily_verse}>
           <p className={styles.verse_text}>
             „Iubesc pe Domnul, căci El aude glasul meu, cererile mele. Da, El Și-a
-            plecat urechea spre mine, de aceea-L voi chema toată viața mea."
+            plecat urechea spre mine, de aceea-L voi chema toată viața mea.&rdquo;
           </p>
           <p className={styles.verse_reference}>- Psalmii 116:1-2</p>
         </div>

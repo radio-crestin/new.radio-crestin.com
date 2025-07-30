@@ -35,7 +35,7 @@ const StationItem = (data: IStation) => {
       <div className={styles.image_container}>
         {(data.now_playing?.[0]?.song?.thumbnail_url || data?.thumbnail_url) && (
           <img
-            src={data.now_playing?.[0]?.song?.thumbnail_url || data?.thumbnail_url}
+            src={data.now_playing?.[0]?.song?.thumbnail_url || data?.thumbnail_url || ""}
             alt={`${data.title} | radiocrestin.ro`}
             loading={"lazy"}
             height={110}
