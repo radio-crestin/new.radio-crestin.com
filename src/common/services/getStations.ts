@@ -2,7 +2,7 @@ import { CONSTANTS } from "@/constants/constants";
 import { Bugsnag } from "@/utils/bugsnag";
 
 const query = `
-    query GetStations {
+   query GetStations @cache_control(max_age: 30, max_stale: 30, stale_while_revalidate: 5) @cached(ttl: 0) {
   stations(order_by: {order: asc}) {
     id
     order
@@ -24,7 +24,7 @@ const query = `
       type
       stream_url
     }
-    posts(limit: 1, order_by: { published: desc }) {
+    posts(limit: 1, order_by: {published: desc}) {
       id
       title
       description
@@ -73,19 +73,30 @@ export const getStations = async () => {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
-      accept: "*/*",
+      accept: "application/json",
+      "content-type": "application/json",
     },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({
+        operationName: "GetStations",
+        variables: {},
+      query
+    }),
   })
     .then(async (response) => {
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
       return await response.json();
     })
     .catch((error) => {
       Bugsnag.notify(
         new Error("Getting stations error: " + JSON.stringify(error, null, 2)),
       );
+      console.error("Error fetching stations:", error);
+      return { data: { stations: [] } };
     });
-
+  console.log("getStations response:", response);
   return {
     stations: response?.data?.stations || [],
   };
