@@ -27,33 +27,33 @@ const useUpdateStationsMetadata = () => {
     }
   }, [pathname, ctx.stations, setCtx]);
 
-  // useEffect(() => {
-  //   const fetchStationsData = async () => {
-  //     try {
-  //       const data = await getStations();
-  //       if (data?.stations && data?.stations.length > 0) {
-  //         setCtx({
-  //           stations: data.stations,
-  //         });
-  //       }
-  //     } catch (error) {
-  //       Bugsnag.notify(
-  //         new Error(
-  //           `Failed to fetch stations - error: ${JSON.stringify(
-  //             error,
-  //             null,
-  //             2,
-  //           )}`,
-  //         ),
-  //       );
-  //     }
-  //   };
-  //
-  //   fetchStationsData();
-  //   const intervalId = setInterval(fetchStationsData, 10000);
-  //
-  //   return () => clearInterval(intervalId);
-  // }, []);
+  useEffect(() => {
+    const fetchStationsData = async () => {
+      try {
+        const data = await getStations();
+        if (data?.stations && data?.stations.length > 0) {
+          setCtx({
+            stations: data.stations,
+          });
+        }
+      } catch (error) {
+        Bugsnag.notify(
+          new Error(
+            `Failed to fetch stations - error: ${JSON.stringify(
+              error,
+              null,
+              2,
+            )}`,
+          ),
+        );
+      }
+    };
+
+    fetchStationsData();
+    const intervalId = setInterval(fetchStationsData, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [setCtx]);
 };
 
 export default useUpdateStationsMetadata;
