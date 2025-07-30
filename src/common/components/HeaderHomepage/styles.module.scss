@@ -71,55 +71,139 @@
       color: var(--text-color);
     }
   }
+
+  .right_content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
+    @include mixinHelper.onTablet {
+      gap: 10px;
+    }
+  }
 }
 
 .content_section {
   display: flex;
-  flex-direction: row;
-  margin-top: 141px;
-  height: 350px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 50px;
+  min-height: 250px;
 
   @include mixinHelper.onTablet {
-    margin-top: 50px;
+    margin-top: 30px;
+    min-height: auto;
   }
 }
 
-.station {
-  .station_details {
-    margin-left: 100px;
+.center_content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+  z-index: 1;
 
-    @include mixinHelper.onTablet {
-      margin-left: 20px;
-    }
+  .welcome_section {
+    max-width: 800px;
+    padding: 0 20px;
 
-    .station_title {
+    .welcome_title {
       font-family: globalVariables.$dm-sans-bold, serif;
-      font-size: 3rem;
+      font-size: 3.5rem;
       font-weight: 700;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
       color: var(--text-color);
 
       @include mixinHelper.onTablet {
-        font-size: 1.7rem;
+        font-size: 2rem;
+        margin-bottom: 20px;
       }
     }
 
-    .station_description {
-      max-width: 537px;
-      font-size: 20px;
-      line-height: 25px;
-      font-weight: 400;
-      height: 100px;
-      color: var(--text-color);
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .daily_verse {
+      margin-bottom: 40px;
+
+      .verse_text {
+        font-size: 20px;
+        line-height: 30px;
+        font-weight: 400;
+        color: var(--text-color);
+        margin-bottom: 15px;
+        font-style: italic;
+
+        @include mixinHelper.onTablet {
+          font-size: 16px;
+          line-height: 24px;
+        }
+      }
+
+      .verse_reference {
+        font-size: 18px;
+        color: var(--text-color);
+        opacity: 0.8;
+        font-weight: 500;
+
+        @include mixinHelper.onTablet {
+          font-size: 14px;
+        }
+      }
+    }
+
+    .share_buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
 
       @include mixinHelper.onTablet {
-        font-size: 1rem;
-        height: 80px;
+        gap: 15px;
+      }
+
+      .share_button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-size: 16px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+
+        @include mixinHelper.onTablet {
+          padding: 10px 20px;
+          font-size: 14px;
+        }
+
+        .social_icon {
+          width: 20px;
+          height: 20px;
+        }
+
+        &.facebook_button {
+          background-color: #1877f2;
+          color: white;
+
+          &:hover {
+            background-color: #166fe5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
+          }
+        }
+
+        &.whatsapp_button {
+          background-color: #25d366;
+          color: white;
+
+          &:hover {
+            background-color: #128c7e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+          }
+        }
       }
     }
   }

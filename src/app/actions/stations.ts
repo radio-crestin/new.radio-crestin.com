@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getStations, getStationsList } from "@/common/services/getStations";
+import { getStations } from "@/common/services/getStations";
 import { IStationExtended } from "@/common/models/Station";
 import { cleanStationsMetadata } from "@/common/utils";
 
@@ -11,8 +11,8 @@ export async function refreshStations() {
 }
 
 export async function getStationsData() {
-  const { stations } = await getStationsList();
-  
+  const { stations } = await getStations();
+
   // Add is_favorite property to each station
   const stationsWithFavorite = stations.map((station) => ({
     ...station,
@@ -21,13 +21,13 @@ export async function getStationsData() {
     now_playing: station.now_playing ? [station.now_playing] : [],
     uptime: station.uptime ? [station.uptime] : [],
   })) as IStationExtended[];
-  
+
   return cleanStationsMetadata(stationsWithFavorite);
 }
 
 export async function getStationBySlug(slug: string) {
   const { stations } = await getStations();
-  
+
   // Add is_favorite property to each station
   const stationsWithFavorite = stations.map((station) => ({
     ...station,
@@ -36,21 +36,21 @@ export async function getStationBySlug(slug: string) {
     now_playing: station.now_playing ? [station.now_playing] : [],
     uptime: station.uptime ? [station.uptime] : [],
   })) as IStationExtended[];
-  
+
   const stationData = stationsWithFavorite.find(
     (station) => station.slug === slug
   );
-  
+
   if (!stationData) {
     return null;
   }
-  
+
   const stations_without_meta = cleanStationsMetadata(stationsWithFavorite);
   const selectedStationIndex = stations_without_meta.findIndex(
     (s) => s.slug === slug
   );
   const selectedStation = stations_without_meta[selectedStationIndex];
-  
+
   return {
     stations: stations_without_meta,
     selectedStation,
