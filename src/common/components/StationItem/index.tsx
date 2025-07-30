@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 
-import { IStation } from "@/models/Station";
+import { IStation } from "@/common/models/Station";
 import styles from "./styles.module.scss";
 import HeadphoneIcon from "@/icons/Headphone";
 import Heart from "@/icons/Heart";
-import useFavourite from "@/store/useFavourite";
+import useFavourite from "@/common/store/useFavourite";
 import { useContext, useEffect, useState } from "react";
-import { Context } from "@/context/ContextProvider";
+import { Context } from "@/common/context/ContextProvider";
 
 const StationItem = (data: IStation) => {
   const context = useContext(Context);
@@ -33,13 +33,15 @@ const StationItem = (data: IStation) => {
       draggable={false}
     >
       <div className={styles.image_container}>
-        <img
-          src={data.now_playing?.[0]?.song?.thumbnail_url || data?.thumbnail_url}
-          alt={`${data.title} | radiocrestin.ro`}
-          loading={"lazy"}
-          height={110}
-          width={110}
-        />
+        {(data.now_playing?.[0]?.song?.thumbnail_url || data?.thumbnail_url) && (
+          <img
+            src={data.now_playing?.[0]?.song?.thumbnail_url || data?.thumbnail_url}
+            alt={`${data.title} | radiocrestin.ro`}
+            loading={"lazy"}
+            height={110}
+            width={110}
+          />
+        )}
       </div>
       <div className={styles.station_details}>
         <p className={styles.station_name}>{data.title}</p>
@@ -53,7 +55,7 @@ const StationItem = (data: IStation) => {
           )}
         </p>
       </div>
-      {data.total_listeners > 0 && (
+      {data.total_listeners && data.total_listeners > 0 && (
         <div className={styles.total_listeners}>
           {data?.total_listeners} <HeadphoneIcon />
         </div>

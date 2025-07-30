@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useContext, useEffect, useState } from "react";
-import { IStationExtended } from "@/models/Station";
+import { IStationExtended } from "@/common/models/Station";
 import styles from "./styles.module.scss";
-import { Context } from "@/context/ContextProvider";
-import FavoriteItem from "@/components/FavoriteItem";
-import StationItem from "@/components/StationItem";
+import { Context } from "@/common/context/ContextProvider";
+import FavoriteItem from "@/common/components/FavoriteItem";
+import StationItem from "@/common/components/StationItem";
 import { Magnify } from "@/icons/Magnify";
 import CloseIcon from "@/icons/CloseIcon";
-import WhatsAppBibleGroup from "@/components/WhatsAppBibleGroup";
+import WhatsAppBibleGroup from "@/common/components/WhatsAppBibleGroup";
+import useFavourite from "@/common/store/useFavourite";
 
 interface StationsProps {
   initialStations?: IStationExtended[];
@@ -19,7 +20,8 @@ const Stations = ({ initialStations }: StationsProps) => {
   if (!context) {
     throw new Error("Stations must be used within ContextProvider");
   }
-  const { ctx } = context;
+  const { ctx, setCtx } = context;
+  const { favouriteItems } = useFavourite();
   const stations = ctx.stations.length > 0 ? ctx.stations : (initialStations || []);
   const [filteredStations, setFilteredStations] = useState(stations);
   const [searchedValue, setSearchedValue] = useState("");
@@ -31,6 +33,14 @@ const Stations = ({ initialStations }: StationsProps) => {
       setFilteredStations(stations);
     }
   }, [stations]);
+
+  // Sync favorite stations from the store
+  useEffect(() => {
+    const favoriteStations = stations.filter((station) => 
+      favouriteItems.includes(station.slug)
+    );
+    setCtx({ favouriteStations: favoriteStations });
+  }, [favouriteItems, stations, setCtx]);
 
   useEffect(() => {
     if (

@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { Metadata } from "next";
-import { SEO_STATISTICI } from "@/utils/seo";
+import { SEO_STATISTICI } from "@/common/utils/seo";
 import { getStationsData } from "../actions/stations";
 import StatisticsClient from "./StatisticsClient";
 import styles from "./page.module.scss";

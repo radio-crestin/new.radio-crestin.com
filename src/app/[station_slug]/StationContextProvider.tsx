@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useContext, useEffect } from "react";
-import { Context } from "@/context/ContextProvider";
-import { IStationExtended } from "@/models/Station";
-import RadioPlayer from "@/components/RadioPlayer";
+import { Context } from "@/common/context/ContextProvider";
+import { IStationExtended } from "@/common/models/Station";
+import RadioPlayer from "@/common/components/RadioPlayer";
 
 interface StationContextProviderProps {
   selectedStation: IStationExtended;

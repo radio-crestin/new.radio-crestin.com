@@ -2,9 +2,9 @@
 
 import Head from "next/head";
 import React, { useContext } from "react";
-import AnalyticsScripts from "@/components/AnalyticsScripts";
-import { Context } from "@/context/ContextProvider";
-import { getStationRating } from "@/utils";
+import AnalyticsScripts from "@/common/components/AnalyticsScripts";
+import { Context } from "@/common/context/ContextProvider";
+import { getStationRating } from "@/common/utils";
 
 const Layout = ({
   title,

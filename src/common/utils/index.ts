@@ -1,4 +1,4 @@
-import { IStationExtended } from "@/models/Station";
+import { IStationExtended } from "@/common/models/Station";
 
 /**
  * clean the Stations metadata because the pages are rendered statically, and the metadata will pe loaded on client side.

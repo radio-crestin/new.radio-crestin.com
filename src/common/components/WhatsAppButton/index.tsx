@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 
 import styles from "./styles.module.scss";
-import { Context } from "@/context/ContextProvider";
+import { Context } from "@/common/context/ContextProvider";
 
 export default function WhatsAppButton() {
   const context = useContext(Context);

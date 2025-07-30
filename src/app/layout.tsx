@@ -1,12 +1,12 @@
 import React from "react";
 import type { Metadata } from "next";
-import { SEO_DEFAULT } from "@/utils/seo";
-import { ContextProvider } from "@/context/ContextProvider";
-import BugsnagErrorBoundary from "@/components/BugsnagErrorBoundary";
+import { SEO_DEFAULT } from "@/common/utils/seo";
+import { ContextProvider } from "@/common/context/ContextProvider";
+import BugsnagErrorBoundary from "@/common/components/BugsnagErrorBoundary";
 import { ThemeProvider } from "next-themes";
-import AnalyticsScripts from "@/components/AnalyticsScripts";
+import AnalyticsScripts from "@/common/components/AnalyticsScripts";
 import { ToastContainer } from "react-toastify";
-import NoInternetConnection from "@/components/NoInternetConnection";
+import NoInternetConnection from "@/common/components/NoInternetConnection";
 import "../../public/styles/_all.scss";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -70,7 +70,7 @@ export default function RootLayout({
       </head>
       <body>
         <BugsnagErrorBoundary>
-          <ThemeProvider attribute="data-theme" enableSystem={true} disableTransitionOnChange={true}>
+          <ThemeProvider attribute="data-theme" enableSystem={true} defaultTheme="system" disableTransitionOnChange={true}>
             <ContextProvider>
               <NoInternetConnection>
                 {children}

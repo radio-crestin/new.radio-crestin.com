@@ -4,12 +4,12 @@ import Link from "next/link";
 import React, { useContext } from "react";
 
 import styles from "./styles.module.scss";
-import { Context } from "@/context/ContextProvider";
-import Rating from "@/components/Rating";
-import { getStationRating } from "@/utils";
-import ShareOnSocial from "@/components/ShareOnSocial";
-import ThemeToggle from "@/components/ThemeToggle";
-import WhatsAppButton from "@/components/WhatsAppButton";
+import { Context } from "@/common/context/ContextProvider";
+import Rating from "@/common/components/Rating";
+import { getStationRating } from "@/common/utils";
+import ShareOnSocial from "@/common/components/ShareOnSocial";
+import ThemeToggle from "@/common/components/ThemeToggle";
+import WhatsAppButton from "@/common/components/WhatsAppButton";
 
 const Navigation = () => (
   <nav className={styles.nav}>
@@ -55,30 +55,34 @@ const ContentLeft = () => {
                 width={230}
                 height={230}
               />
+              {selectedStation?.thumbnail_url && (
+                <img
+                  loading={"lazy"}
+                  src={selectedStation.thumbnail_url}
+                  alt={selectedStation.title}
+                  className={styles.img_thumb}
+                  width={230}
+                  height={230}
+                />
+              )}
+            </div>
+          ) : (
+            selectedStation?.thumbnail_url && (
               <img
                 loading={"lazy"}
-                src={selectedStation?.thumbnail_url}
+                src={selectedStation.thumbnail_url}
                 alt={selectedStation.title}
-                className={styles.img_thumb}
                 width={230}
                 height={230}
               />
-            </div>
-          ) : (
-            <img
-              loading={"lazy"}
-              src={selectedStation?.thumbnail_url}
-              alt={selectedStation.title}
-              width={230}
-              height={230}
-            />
+            )
           )}
           <div className={styles.station_info}>
             <h2 className={styles.station_title}>
               {selectedStation.now_playing?.[0]?.song?.name || selectedStation.title}
             </h2>
             <p className={styles.station_artist}>
-              {selectedStation.now_playing?.[0]?.song?.artist.name}
+              {selectedStation.now_playing?.[0]?.song?.artist?.name}
             </p>
           </div>
         </>
@@ -98,12 +102,14 @@ const ContentRight = () => {
     <div className={styles.right_content}>
       <div className={styles.station_details}>
         <div className={styles.title_container}>
-          <img
-            src={ctx.selectedStation?.thumbnail_url}
-            alt="Radio Crestin"
-            height={100}
-            width={100}
-          />
+          {ctx.selectedStation?.thumbnail_url && (
+            <img
+              src={ctx.selectedStation.thumbnail_url}
+              alt="Radio Crestin"
+              height={100}
+              width={100}
+            />
+          )}
           <h1 className={styles.station_title}>{ctx.selectedStation?.title}</h1>
         </div>
         <div className={styles.rating_wrapper}>

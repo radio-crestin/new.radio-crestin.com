@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { IStationExtended } from "@/models/Station";
+import { IStationExtended } from "@/common/models/Station";
 import styles from "./page.module.scss";
 
 interface StatisticsClientProps {

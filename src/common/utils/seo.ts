@@ -1,4 +1,4 @@
-import { IStation } from "@/models/Station";
+import { IStation } from "@/common/models/Station";
 
 export const seoStation = (station: IStation) => {
   return {

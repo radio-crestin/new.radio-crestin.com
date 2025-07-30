@@ -1,9 +1,9 @@
 "use client";
 
 import { useContext, useEffect } from "react";
-import { IStation } from "@/models/Station";
-import { Context } from "@/context/ContextProvider";
-import useFavourite from "@/store/useFavourite";
+import { IStation } from "@/common/models/Station";
+import { Context } from "@/common/context/ContextProvider";
+import useFavourite from "@/common/store/useFavourite";
 
 const useFavouriteStations = () => {
   const context = useContext(Context);
@@ -24,7 +24,6 @@ const useFavouriteStations = () => {
         .filter((station) => station !== null) || [];
     setCtx({
       favouriteStations: favouriteStations,
-      isFavouriteStationsLoaded: true,
     });
   }, [favouriteItems, ctx.stations]);
 };

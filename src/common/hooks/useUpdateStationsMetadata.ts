@@ -1,16 +1,21 @@
 import { useContext, useEffect } from "react";
-import { getStations } from "@/services/getStations";
-import { IStation } from "@/models/Station";
-import { Context } from "@/context/ContextProvider";
-import { useRouter } from "next/router";
-import { Bugsnag } from "@/utils/bugsnag";
+import { getStations } from "@/common/services/getStations";
+import { IStation } from "@/common/models/Station";
+import { Context } from "@/common/context/ContextProvider";
+import { usePathname } from "next/navigation";
+import { Bugsnag } from "@/common/utils/bugsnag";
 
 const useUpdateStationsMetadata = () => {
-  const { ctx, setCtx } = useContext(Context);
-  const router = useRouter();
+  const context = useContext(Context);
+  if (!context) {
+    throw new Error("useUpdateStationsMetadata must be used within ContextProvider");
+  }
+  const { ctx, setCtx } = context;
+  const pathname = usePathname();
 
   useEffect(() => {
-    const { station_slug } = router.query;
+    // Extract station slug from pathname
+    const station_slug = pathname?.split('/')[1];
     if (station_slug && ctx?.stations) {
       const selectedStationIndex = ctx.stations.findIndex(
         (s: IStation) => s.slug === station_slug,
@@ -20,7 +25,7 @@ const useUpdateStationsMetadata = () => {
         selectedStation: ctx.stations[selectedStationIndex],
       });
     }
-  }, [router.query.station_slug, ctx.stations]);
+  }, [pathname, ctx.stations, setCtx]);
 
   // useEffect(() => {
   //   const fetchStationsData = async () => {

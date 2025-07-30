@@ -2,6 +2,8 @@ import Link from "next/link";
 import React from "react";
 
 import styles from "./styles.module.scss";
+import ThemeToggle from "@/common/components/ThemeToggle";
+import WhatsAppButton from "@/common/components/WhatsAppButton";
 
 const Navigation = () => (
   <nav className={styles.nav}>
@@ -16,6 +18,10 @@ const Navigation = () => (
         />
         <h1>Radio Creștin</h1>
       </Link>
+    </div>
+    <div className={styles.right_content}>
+      <ThemeToggle />
+      <WhatsAppButton />
     </div>
   </nav>
 );

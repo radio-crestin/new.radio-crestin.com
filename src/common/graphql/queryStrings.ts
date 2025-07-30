@@ -1,6 +1,4 @@
-import { gql } from "@/lib/graphql";
-
-export const GET_STATIONS_QUERY = gql(`
+export const GET_STATIONS_QUERY_STRING = `
   query GetStations {
     stations(order_by: { order: asc }) {
       id
@@ -65,10 +63,9 @@ export const GET_STATIONS_QUERY = gql(`
       }
     }
   }
-`);
+`;
 
-// Create a lightweight query for listing pages that don't need all data
-export const GET_STATIONS_LIST_QUERY = gql(`
+export const GET_STATIONS_LIST_QUERY_STRING = `
   query GetStationsList {
     stations(order_by: { order: asc }) {
       id
@@ -102,10 +99,9 @@ export const GET_STATIONS_LIST_QUERY = gql(`
       }
     }
   }
-`);
+`;
 
-// Create a query for single station page with all necessary data
-export const GET_STATION_DETAIL_QUERY = gql(`
+export const GET_STATION_DETAIL_QUERY_STRING = `
   query GetStationDetail {
     stations(order_by: { order: asc }) {
       id
@@ -161,4 +157,4 @@ export const GET_STATION_DETAIL_QUERY = gql(`
       }
     }
   }
-`);
+`;

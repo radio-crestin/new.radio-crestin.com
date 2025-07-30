@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useReducer, useCallback } from "react";
-import { IStationExtended } from "@/models/Station";
+import { IStationExtended } from "@/common/models/Station";
 
 interface ContextState {
   stations: IStationExtended[];

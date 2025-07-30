@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 
-import { IStation } from "@/models/Station";
+import { IStation } from "@/common/models/Station";
 import styles from "./styles.module.scss";
-import useFavourite from "@/store/useFavourite";
+import useFavourite from "@/common/store/useFavourite";
 import React, { useContext, useEffect, useState } from "react";
 import Heart from "@/icons/Heart";
-import { Context } from "@/context/ContextProvider";
+import { Context } from "@/common/context/ContextProvider";
 
 const FavouriteItem = (data: IStation) => {
   const context = useContext(Context);
@@ -35,7 +35,7 @@ const FavouriteItem = (data: IStation) => {
     >
       <div className={styles.image_container}>
         <img
-          src={data.thumbnail_url}
+          src={data.thumbnail_url || ""}
           alt={`${data.title} | radiocrestin.ro`}
           loading={"lazy"}
           height={100}

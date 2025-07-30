@@ -1,10 +1,10 @@
 import React from "react";
 import { Metadata } from "next";
-import HeaderHomepage from "@/components/HeaderHomepage";
-import Stations from "@/components/Stations";
-import DownloadAppBanner from "@/components/DownloadAppBanner";
-import FooterLinks from "@/components/FooterLinks";
-import { SEO_DEFAULT } from "@/utils/seo";
+import HeaderHomepage from "@/common/components/HeaderHomepage";
+import Stations from "@/common/components/Stations";
+import DownloadAppBanner from "@/common/components/DownloadAppBanner";
+import FooterLinks from "@/common/components/FooterLinks";
+import { SEO_DEFAULT } from "@/common/utils/seo";
 import { getStationsData } from "./actions/stations";
 
 export const metadata: Metadata = {

@@ -1,41 +1,24 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import styles from "./styles.module.scss";
 
 const ThemeToggle: React.FC = () => {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme);
-    setDropdownOpen(false);
+  const cycleTheme = () => {
+    const themes = ["system", "light", "dark"];
+    const currentTheme = theme || "system";
+    const currentIndex = themes.indexOf(currentTheme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    setTheme(themes[nextIndex]);
   };
-
-  useEffect(() => {
-    if (!dropdownOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [dropdownOpen]);
 
   const themeNames: { [key: string]: string } = {
     system: "Sistem",
@@ -50,57 +33,63 @@ const ThemeToggle: React.FC = () => {
   const currentTheme = theme || "system";
 
   return (
-    <div className={styles.dropdown} ref={dropdownRef}>
+    <div className={styles.themeToggleWrapper}>
       <button
-        className={styles.dropdownButton}
-        onClick={() => setDropdownOpen(!dropdownOpen)}
-        aria-haspopup="true"
-        aria-expanded={dropdownOpen}
+        className={styles.themeButton}
+        onClick={cycleTheme}
+        aria-label={`Switch theme (current: ${themeNames[currentTheme]})`}
       >
-        <span className={styles.buttonContent}>
-          {currentTheme === "system" && (
-            <img
-              src={
-                resolvedTheme === "light" ? "/icons/sun.svg" : "/icons/luna.svg"
-              }
-              alt={resolvedTheme === "light" ? "sun" : "moon"}
-              height={20}
-              width={20}
+        {currentTheme === "system" && (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M4 6C4 4.89543 4.89543 4 6 4H18C19.1046 4 20 4.89543 20 6V13C20 14.1046 19.1046 15 18 15H6C4.89543 15 4 14.1046 4 13V6Z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
-          )}
-          {currentTheme === "light" && (
-            <img
-              src={"/icons/sun.svg"}
-              alt={"sun"}
-              height={20}
-              width={20}
-              draggable={false}
+            <path
+              d="M8 19H16"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
-          )}
-          {currentTheme === "dark" && (
-            <img
-              src={"/icons/luna.svg"}
-              alt={"moon"}
-              height={20}
-              width={20}
-              draggable={false}
+            <path
+              d="M12 15V19"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
-          )}
-        </span>
+          </svg>
+        )}
+        {currentTheme === "light" && (
+          <img
+            src={"/icons/sun.svg"}
+            alt={"sun"}
+            height={20}
+            width={20}
+            draggable={false}
+          />
+        )}
+        {currentTheme === "dark" && (
+          <img
+            src={"/icons/luna.svg"}
+            alt={"moon"}
+            height={20}
+            width={20}
+            draggable={false}
+          />
+        )}
       </button>
-      {dropdownOpen && (
-        <ul className={styles.dropdownMenu}>
-          <li onClick={() => handleThemeChange("system")}>
-            {themeNames["system"]}
-          </li>
-          <li onClick={() => handleThemeChange("light")}>
-            {themeNames["light"]}
-          </li>
-          <li onClick={() => handleThemeChange("dark")}>
-            {themeNames["dark"]}
-          </li>
-        </ul>
-      )}
+      <div className={styles.tooltip}>{themeNames[currentTheme]}</div>
     </div>
   );
 };

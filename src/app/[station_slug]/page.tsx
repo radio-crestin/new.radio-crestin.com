@@ -1,14 +1,15 @@
 import React from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Header from "@/components/Header";
-import Stations from "@/components/Stations";
-import DownloadAppBanner from "@/components/DownloadAppBanner";
-import FooterLinks from "@/components/FooterLinks";
-import { seoStation } from "@/utils/seo";
+import Header from "@/common/components/Header";
+import Stations from "@/common/components/Stations";
+import DownloadAppBanner from "@/common/components/DownloadAppBanner";
+import FooterLinks from "@/common/components/FooterLinks";
+import { seoStation } from "@/common/utils/seo";
 import { getStationBySlug, getStationsData } from "../actions/stations";
-import { getStations } from "@/services/getStations";
+import { getStations } from "@/common/services/getStations";
 import StationContextProvider from "./StationContextProvider";
+import type { IStation } from "@/common/models/Station";
 
 interface StationPageProps {
   params: Promise<{

@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import HeaderHomepage from "@/components/HeaderHomepage";
+import HeaderHomepage from "@/common/components/HeaderHomepage";
 
 export default function NotFound() {
   return (

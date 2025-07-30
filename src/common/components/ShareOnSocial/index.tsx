@@ -1,8 +1,8 @@
 import React, { useContext } from "react";
 
 import styles from "./styles.module.scss";
-import { IStation } from "@/models/Station";
-import { Context } from "@/context/ContextProvider";
+import { IStation } from "@/common/models/Station";
+import { Context } from "@/common/context/ContextProvider";
 
 
 export default function ShareOnSocial() {

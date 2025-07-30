@@ -3,18 +3,18 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Hls from "hls.js";
-import useSpaceBarPress from "@/hooks/useSpaceBarPress";
+import useSpaceBarPress from "@/common/hooks/useSpaceBarPress";
 import { Loading } from "@/icons/Loading";
-import { CONSTANTS } from "@/constants/constants";
+import { CONSTANTS } from "@/common/constants/constants";
 import styles from "./styles.module.scss";
-import { Context } from "@/context/ContextProvider";
-import usePlayer from "@/store/usePlayer";
-import { PLAYBACK_STATE } from "@/models/enum";
+import { Context } from "@/common/context/ContextProvider";
+import usePlayer from "@/common/store/usePlayer";
+import { PLAYBACK_STATE } from "@/common/models/enum";
 import { toast } from "react-toastify";
 import Heart from "@/icons/Heart";
-import useFavourite from "@/store/useFavourite";
-import { Bugsnag } from "@/utils/bugsnag";
-import { IStationStreams } from "@/models/Station";
+import useFavourite from "@/common/store/useFavourite";
+import { Bugsnag } from "@/common/utils/bugsnag";
+import { IStationStreams } from "@/common/models/Station";
 
 enum STREAM_TYPE {
   HLS = "HLS",
@@ -70,7 +70,7 @@ export default function RadioPlayer() {
   }, [playerVolume]);
 
   const getStreamUrl = (type: STREAM_TYPE | null) => {
-    if (!type) return null;
+    if (!type || !station) return null;
     const stream = station.station_streams.find(
       (stream: IStationStreams) => stream.type === type,
     );
@@ -111,7 +111,7 @@ export default function RadioPlayer() {
         Bugsnag.notify(
           new Error(
             `HLS Fatal error - station.title: ${
-              station.title
+              station?.title
             }, error: ${JSON.stringify(
               data,
               null,
@@ -126,7 +126,7 @@ export default function RadioPlayer() {
 
   const resetAndReloadStream = () => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio || !streamType) return;
+    if (!audio || !streamType || !station) return;
 
     if (hlsInstance) {
       hlsInstance.destroy();
@@ -149,7 +149,7 @@ export default function RadioPlayer() {
         Bugsnag.notify(
           new Error(
             `Error reloading stream - station.title: ${
-              station.title
+              station?.title
             }, error: ${JSON.stringify(error, null, 2)}`,
           ),
         );
@@ -174,7 +174,7 @@ export default function RadioPlayer() {
         }
         break;
     }
-  }, [hlsInstance, playbackState, resetAndReloadStream]);
+  }, [hlsInstance, playbackState, streamType, station]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -184,7 +184,7 @@ export default function RadioPlayer() {
     return () => {
       setRetries(20);
     };
-  }, [station.slug]);
+  }, [station?.slug]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -209,7 +209,7 @@ export default function RadioPlayer() {
           Bugsnag.notify(
             new Error(
               `Switching from HLS -> PROXY error:157 - station.title: ${
-                station.title
+                station?.title
               }, error: ${JSON.stringify(error, null, 2)}`,
             ),
           );
@@ -222,7 +222,7 @@ export default function RadioPlayer() {
           Bugsnag.notify(
             new Error(
               `Switching from PROXY to ORIGINAL error:168 - station.title: ${
-                station.title
+                station?.title
               }, error: ${JSON.stringify(error, null, 2)}`,
             ),
           );
@@ -233,17 +233,17 @@ export default function RadioPlayer() {
     return () => {
       hls.destroy();
     };
-  }, [streamType, station.slug]);
+  }, [streamType, station?.slug]);
 
   const retryMechanism = () => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio) return;
+    if (!audio || !station) return;
 
-    setRetries(retries - 1);
-    if (retries > 0) {
-      const availableStreamTypes = station.station_streams.map(
+    setRetries((prevRetries) => {
+      if (prevRetries > 0) {
+      const availableStreamTypes = station?.station_streams.map(
         (s: IStationStreams) => s.type,
-      );
+      ) || [];
       const streamOrder = [
         STREAM_TYPE.HLS,
         STREAM_TYPE.PROXY,
@@ -261,44 +261,47 @@ export default function RadioPlayer() {
         }
       } while (nextIndex !== currentIndex);
 
-      if (nextIndex === currentIndex) {
-        setStreamType(streamOrder[nextIndex]);
+        if (nextIndex === currentIndex) {
+          setStreamType(streamOrder[nextIndex]);
+        }
+        return prevRetries - 1;
+      } else {
+        Bugsnag.notify(
+          new Error(
+            `Hasn't been able to connect to the station - ${station?.title}. Tried 20 times :P.`,
+          ),
+        );
+        toast.error(
+          <div>
+            Nu s-a putut stabili o conexiune cu stația:{" "}
+            <strong style={{ fontWeight: "bold" }}>{station?.title}</strong>
+            <br />
+            <br />
+            <span style={{ marginTop: 20 }}>
+              Vă rugăm să încercați mai târziu!
+            </span>
+          </div>,
+          {
+            position: "top-center",
+            autoClose: 9000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          },
+        );
+        return 0;
       }
-    } else {
-      Bugsnag.notify(
-        new Error(
-          `Hasn't been able to connect to the station - ${station.title}. Tried 20 times :P.`,
-        ),
-      );
-      toast.error(
-        <div>
-          Nu s-a putut stabili o conexiune cu stația:{" "}
-          <strong style={{ fontWeight: "bold" }}>{station.title}</strong>
-          <br />
-          <br />
-          <span style={{ marginTop: 20 }}>
-            Vă rugăm să încercați mai târziu!
-          </span>
-        </div>,
-        {
-          position: "top-center",
-          autoClose: 9000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "light",
-        },
-      );
-    }
+    });
   };
 
   useEffect(() => {
-    if ("mediaSession" in navigator) {
+    if ("mediaSession" in navigator && station) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: station.now_playing?.[0]?.song?.name || station.title,
-        artist: station.now_playing?.[0]?.song?.artist.name || "",
+        artist: station.now_playing?.[0]?.song?.artist?.name || "",
         artwork: [
           {
             src: station.thumbnail_url || CONSTANTS.DEFAULT_COVER,
@@ -345,7 +348,7 @@ export default function RadioPlayer() {
       (station: any) => station.uptime.is_up === true,
     );
 
-    const currentIndex = upStations.findIndex((s: any) => s.id === station.id);
+    const currentIndex = upStations.findIndex((s: any) => s.id === station?.id);
 
     const nextIndex = currentIndex + 1;
     const nextStation = upStations[nextIndex % upStations.length];
@@ -376,6 +379,10 @@ export default function RadioPlayer() {
     }
   };
 
+  if (!station) {
+    return null;
+  }
+
   return (
     <div className={styles.radio_player_container}>
       <div className={styles.radio_player}>
@@ -392,7 +399,7 @@ export default function RadioPlayer() {
             />
             <div
               className={styles.heart_container}
-              onClick={() => toggleFavourite(station.slug)}
+              onClick={() => toggleFavourite(station?.slug || "")}
             >
               <Heart
                 color={isFavorite ? "red" : "white"}
@@ -476,7 +483,7 @@ export default function RadioPlayer() {
           onError={(error) => {
             Bugsnag.notify(
               new Error(
-                `Audio error:414 - station.title: ${station.title}, error: ${error}`,
+                `Audio error:414 - station.title: ${station?.title}, error: ${error}`,
               ),
             );
             retryMechanism();

@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getStations, getStationsList } from "@/services/getStations";
-import { IStationExtended } from "@/models/Station";
-import { cleanStationsMetadata } from "@/utils";
+import { getStations, getStationsList } from "@/common/services/getStations";
+import { IStationExtended } from "@/common/models/Station";
+import { cleanStationsMetadata } from "@/common/utils";
 
 export async function refreshStations() {
   revalidatePath("/");
@@ -17,6 +17,9 @@ export async function getStationsData() {
   const stationsWithFavorite = stations.map((station) => ({
     ...station,
     is_favorite: false,
+    // Convert singular to array for backward compatibility
+    now_playing: station.now_playing ? [station.now_playing] : [],
+    uptime: station.uptime ? [station.uptime] : [],
   })) as IStationExtended[];
   
   return cleanStationsMetadata(stationsWithFavorite);
@@ -29,6 +32,9 @@ export async function getStationBySlug(slug: string) {
   const stationsWithFavorite = stations.map((station) => ({
     ...station,
     is_favorite: false,
+    // Convert singular to array for backward compatibility
+    now_playing: station.now_playing ? [station.now_playing] : [],
+    uptime: station.uptime ? [station.uptime] : [],
   })) as IStationExtended[];
   
   const stationData = stationsWithFavorite.find(
