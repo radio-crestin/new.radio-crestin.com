@@ -113,27 +113,30 @@ export default function RadioPlayer() {
             `Hasn't been able to connect to the station - ${station?.title}. Tried 20 times :P.`,
           ),
         );
-        toast.error(
-          <div>
-            Nu s-a putut stabili o conexiune cu stația:{" "}
-            <strong style={{ fontWeight: "bold" }}>{station?.title}</strong>
-            <br />
-            <br />
-            <span style={{ marginTop: 20 }}>
-              Vă rugăm să încercați mai târziu!
-            </span>
-          </div>,
-          {
-            position: "top-center",
-            autoClose: 9000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "light",
-          },
-        );
+        // Defer toast to next tick to avoid updating during render
+        setTimeout(() => {
+          toast.error(
+            <div>
+              Nu s-a putut stabili o conexiune cu stația:{" "}
+              <strong style={{ fontWeight: "bold" }}>{station?.title}</strong>
+              <br />
+              <br />
+              <span style={{ marginTop: 20 }}>
+                Vă rugăm să încercați mai târziu!
+              </span>
+            </div>,
+            {
+              position: "top-center",
+              autoClose: 9000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+              theme: "light",
+            },
+          );
+        }, 0);
         return 0;
       }
     });
@@ -190,9 +193,13 @@ export default function RadioPlayer() {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
     if (!audio || !streamType || !station) return;
 
-    if (hlsInstance) {
-      hlsInstance.destroy();
-    }
+    // Destroy existing HLS instance outside of the callback to avoid circular dependency
+    setHlsInstance((prevHls) => {
+      if (prevHls) {
+        prevHls.destroy();
+      }
+      return null;
+    });
 
     const streamUrl = getStreamUrl(streamType);
     if (!streamUrl) {
@@ -218,7 +225,7 @@ export default function RadioPlayer() {
         retryMechanism();
       });
     }
-  }, [streamType, station, hlsInstance, retryMechanism, getStreamUrl, loadHLS]);
+  }, [streamType, station, retryMechanism, getStreamUrl, loadHLS]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -230,13 +237,16 @@ export default function RadioPlayer() {
         break;
       case PLAYBACK_STATE.STOPPED:
         audio.pause();
-        if (hlsInstance) {
-          hlsInstance.stopLoad();
-          hlsInstance.detachMedia();
-        }
+        setHlsInstance((prevHls) => {
+          if (prevHls) {
+            prevHls.stopLoad();
+            prevHls.detachMedia();
+          }
+          return prevHls;
+        });
         break;
     }
-  }, [playbackState, resetAndReloadStream, hlsInstance]);
+  }, [playbackState, resetAndReloadStream]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -252,17 +262,28 @@ export default function RadioPlayer() {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
     if (!audio || !streamType) return;
 
+    // Clean up previous HLS instance when station or stream type changes
+    setHlsInstance((prevHls) => {
+      if (prevHls) {
+        prevHls.stopLoad();
+        prevHls.detachMedia();
+        prevHls.destroy();
+      }
+      return null;
+    });
+
     const streamUrl = getStreamUrl(streamType);
     if (!streamUrl) {
       retryMechanism();
       return;
     }
 
-    const hls = new Hls();
-    setHlsInstance(hls);
+    let hls: Hls | null = null;
 
     switch (streamType) {
       case STREAM_TYPE.HLS:
+        hls = new Hls();
+        setHlsInstance(hls);
         loadHLS(streamUrl, audio, hls);
         break;
       case STREAM_TYPE.PROXY:
@@ -293,9 +314,37 @@ export default function RadioPlayer() {
     }
 
     return () => {
-      hls.destroy();
+      // Clean up HLS instance on unmount or dependencies change
+      if (hls) {
+        hls.stopLoad();
+        hls.detachMedia();
+        hls.destroy();
+      }
+      // Also clean up the state HLS instance
+      setHlsInstance((prevHls) => {
+        if (prevHls && prevHls !== hls) {
+          prevHls.stopLoad();
+          prevHls.detachMedia();
+          prevHls.destroy();
+        }
+        return null;
+      });
     };
   }, [streamType, station?.slug, getStreamUrl, loadHLS, retryMechanism, station?.title]);
+
+  // Cleanup effect when component unmounts
+  useEffect(() => {
+    return () => {
+      setHlsInstance((prevHls) => {
+        if (prevHls) {
+          prevHls.stopLoad();
+          prevHls.detachMedia();
+          prevHls.destroy();
+        }
+        return null;
+      });
+    };
+  }, []);
 
   const nextRandomStation = React.useCallback(() => {
     const upStations = ctx.stations.filter(
