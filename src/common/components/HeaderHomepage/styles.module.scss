@@ -111,17 +111,16 @@
       font-weight: 400;
       height: 100px;
       color: var(--text-color);
-
-      @include mixinHelper.onTablet {
-        font-size: 1rem;
-        height: 80px;
-      }
-
       display: -webkit-box;
       -webkit-line-clamp: 4;
       -webkit-box-orient: vertical;
       overflow: hidden;
       text-overflow: ellipsis;
+
+      @include mixinHelper.onTablet {
+        font-size: 1rem;
+        height: 80px;
+      }
     }
   }
 }
