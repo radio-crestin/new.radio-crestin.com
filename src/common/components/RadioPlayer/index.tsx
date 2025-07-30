@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Hls from "hls.js";
 import useSpaceBarPress from "@/common/hooks/useSpaceBarPress";
@@ -39,6 +39,13 @@ export default function RadioPlayer() {
   const { favouriteItems, toggleFavourite } = useFavourite();
   const [isFavorite, setIsFavorite] = useState(false);
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
+
+  // Memoize critical station values to prevent unnecessary re-renders
+  const stationId = useMemo(() => station?.id, [station?.id]);
+  const stationSlug = useMemo(() => station?.slug, [station?.slug]);
+  const stationTitle = useMemo(() => station?.title, [station?.title]);
+  const stationStreams = useMemo(() => JSON.stringify(station?.station_streams || []), [station?.station_streams]);
+  const currentlyPlaying = useMemo(() => JSON.stringify(station?.now_playing || []), [station?.now_playing]);
 
   useEffect(() => {
     if (!station) return;
@@ -110,7 +117,7 @@ export default function RadioPlayer() {
       } else {
         Bugsnag.notify(
           new Error(
-            `Hasn't been able to connect to the station - ${station?.title}. Tried 20 times :P.`,
+            `Hasn't been able to connect to the station - ${stationTitle}. Tried 20 times :P.`,
           ),
         );
         // Defer toast to next tick to avoid updating during render
@@ -118,7 +125,7 @@ export default function RadioPlayer() {
           toast.error(
             <div>
               Nu s-a putut stabili o conexiune cu stația:{" "}
-              <strong style={{ fontWeight: "bold" }}>{station?.title}</strong>
+              <strong style={{ fontWeight: "bold" }}>{stationTitle}</strong>
               <br />
               <br />
               <span style={{ marginTop: 20 }}>
@@ -175,9 +182,7 @@ export default function RadioPlayer() {
       if (data.fatal) {
         Bugsnag.notify(
           new Error(
-            `HLS Fatal error - station.title: ${
-              station?.title
-            }, error: ${JSON.stringify(
+            `HLS Fatal error - station.title: ${stationTitle}, error: ${JSON.stringify(
               data,
               null,
               2,
@@ -187,7 +192,7 @@ export default function RadioPlayer() {
         retryMechanism();
       }
     });
-  }, [station?.title, retryMechanism]);
+  }, [stationTitle, retryMechanism]);
 
   const resetAndReloadStream = React.useCallback(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -217,9 +222,7 @@ export default function RadioPlayer() {
       audio.play().catch((error) => {
         Bugsnag.notify(
           new Error(
-            `Error reloading stream - station.title: ${
-              station?.title
-            }, error: ${JSON.stringify(error, null, 2)}`,
+            `Error reloading stream - station.title: ${stationTitle}, error: ${JSON.stringify(error, null, 2)}`,
           ),
         );
         retryMechanism();
@@ -256,7 +259,7 @@ export default function RadioPlayer() {
     return () => {
       setRetries(20);
     };
-  }, [station?.slug, playerVolume]);
+  }, [stationSlug, playerVolume]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -291,9 +294,7 @@ export default function RadioPlayer() {
         audio.play().catch((error) => {
           Bugsnag.notify(
             new Error(
-              `Switching from HLS -> PROXY error:157 - station.title: ${
-                station?.title
-              }, error: ${JSON.stringify(error, null, 2)}`,
+              `Switching from HLS -> PROXY error:157 - station.title: ${stationTitle}, error: ${JSON.stringify(error, null, 2)}`,
             ),
           );
           retryMechanism();
@@ -304,9 +305,7 @@ export default function RadioPlayer() {
         audio.play().catch((error) => {
           Bugsnag.notify(
             new Error(
-              `Switching from PROXY to ORIGINAL error:168 - station.title: ${
-                station?.title
-              }, error: ${JSON.stringify(error, null, 2)}`,
+              `Switching from PROXY to ORIGINAL error:168 - station.title: ${stationTitle}, error: ${JSON.stringify(error, null, 2)}`,
             ),
           );
           retryMechanism();
@@ -330,7 +329,7 @@ export default function RadioPlayer() {
         return null;
       });
     };
-  }, [streamType, station?.slug, getStreamUrl, loadHLS, retryMechanism, station?.title]);
+  }, [streamType, stationSlug, getStreamUrl, loadHLS, retryMechanism, stationTitle]);
 
   // Cleanup effect when component unmounts
   useEffect(() => {
@@ -351,13 +350,13 @@ export default function RadioPlayer() {
       (station: any) => station.uptime.is_up === true,
     );
 
-    const currentIndex = upStations.findIndex((s: any) => s.id === station?.id);
+    const currentIndex = upStations.findIndex((s: any) => s.id === stationId);
 
     const nextIndex = currentIndex + 1;
     const nextStation = upStations[nextIndex % upStations.length];
 
     router.push(`/${nextStation.slug}`);
-  }, [ctx.stations, station?.id, router]);
+  }, [ctx.stations, stationId, router]);
 
   useEffect(() => {
     if ("mediaSession" in navigator && station) {
@@ -532,7 +531,7 @@ export default function RadioPlayer() {
           onError={(error) => {
             Bugsnag.notify(
               new Error(
-                `Audio error:414 - station.title: ${station?.title}, error: ${error}`,
+                `Audio error:414 - station.title: ${stationTitle}, error: ${error}`,
               ),
             );
             retryMechanism();

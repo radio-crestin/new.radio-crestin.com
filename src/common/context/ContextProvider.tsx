@@ -58,14 +58,45 @@ const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     setCtx({ selectedStation: station });
   }, []);
 
-  // Auto-refresh stations every 10 seconds
+  // Auto-refresh stations every 10 seconds with smart updates
   useEffect(() => {
     const fetchStationsData = async () => {
       try {
         const data = await getStations();
         if (data?.stations && data?.stations.length > 0) {
-          setCtx({
-            stations: data.stations,
+          // Only update if stations data has actually changed
+          setCtx((prevCtx: ContextState) => {
+            const newStations = data.stations;
+            
+            // Quick check: if lengths are different, definitely update
+            if (prevCtx.stations.length !== newStations.length) {
+              return { stations: newStations };
+            }
+            
+            // Check if any station data has actually changed
+            const hasChanges = newStations.some((newStation: IStationExtended, index: number) => {
+              const prevStation = prevCtx.stations[index];
+              if (!prevStation) return true;
+              
+              // Compare key fields that affect playback or display
+              return (
+                prevStation.id !== newStation.id ||
+                prevStation.slug !== newStation.slug ||
+                prevStation.title !== newStation.title ||
+                JSON.stringify(prevStation.now_playing) !== JSON.stringify(newStation.now_playing) ||
+                JSON.stringify(prevStation.station_streams) !== JSON.stringify(newStation.station_streams) ||
+                prevStation.thumbnail_url !== newStation.thumbnail_url ||
+                JSON.stringify(prevStation.uptime) !== JSON.stringify(newStation.uptime)
+              );
+            });
+            
+            // Only update if there are actual changes
+            if (hasChanges) {
+              return { stations: newStations };
+            }
+            
+            // No changes, return previous context unchanged
+            return prevCtx;
           });
         }
       } catch (error) {
@@ -87,18 +118,27 @@ const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Update selected station based on pathname
+  // Update selected station based on pathname with smart comparison
   useEffect(() => {
     const station_slug = pathname?.split('/')[1];
-    if (station_slug && ctx?.stations) {
-      const selectedStationIndex = ctx.stations.findIndex(
+    if (station_slug && ctx?.stations && ctx.stations.length > 0) {
+      const newSelectedStation = ctx.stations.find(
         (s: IStationExtended) => s.slug === station_slug,
       );
 
-      if (selectedStationIndex !== -1) {
-        setCtx({
-          selectedStation: ctx.stations[selectedStationIndex],
-        });
+      if (newSelectedStation) {
+        // Only update if the selected station has actually changed or is different
+        const currentSelected = ctx.selectedStation;
+        const shouldUpdate = !currentSelected || 
+          currentSelected.id !== newSelectedStation.id ||
+          currentSelected.slug !== newSelectedStation.slug ||
+          JSON.stringify(currentSelected.now_playing) !== JSON.stringify(newSelectedStation.now_playing) ||
+          JSON.stringify(currentSelected.station_streams) !== JSON.stringify(newSelectedStation.station_streams) ||
+          currentSelected.thumbnail_url !== newSelectedStation.thumbnail_url;
+
+        if (shouldUpdate) {
+          setCtx({ selectedStation: newSelectedStation });
+        }
       }
     }
   }, [pathname, ctx.stations]);
