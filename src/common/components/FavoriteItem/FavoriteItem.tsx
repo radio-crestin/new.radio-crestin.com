@@ -5,18 +5,29 @@ import Link from "next/link";
 import { IStation, IStationExtended } from "@/common/models/Station";
 import styles from "./styles.module.scss";
 import useFavourite from "@/common/store/useFavourite";
+import useStation from "@/common/store/useStation";
 import React, { useEffect, useState } from "react";
 import Heart from "@/icons/Heart";
 
 const FavouriteItem = (data: IStation) => {
   const { favouriteItems, toggleFavourite } = useFavourite();
+  const { currentStation, allStations, setCurrentStation } = useStation();
   const [isStationFavourite, setIsStationFavourite] = useState(false);
   
-  const isActive = false; // Removed context dependency for static rendering
+  const isActive = currentStation?.slug === data.slug;
 
   useEffect(() => {
     setIsStationFavourite(favouriteItems.includes(data.slug));
   }, [data.slug, favouriteItems]);
+
+  const handleStationClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const station = allStations.find(s => s.slug === data.slug);
+    if (station) {
+      setCurrentStation(station);
+      window.history.pushState({}, '', `/${data.slug}`);
+    }
+  };
 
   return (
     <Link
@@ -25,6 +36,7 @@ const FavouriteItem = (data: IStation) => {
       scroll={false}
       data-active={isActive}
       draggable={false}
+      onClick={handleStationClick}
     >
       <div className={styles.image_container}>
         <img
