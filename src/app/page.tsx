@@ -24,7 +24,7 @@ export default async function HomePage() {
     is_favorite: false,
   })) as IStationExtended[];
 
-  const cleanedStations = cleanStationsMetadata(stationsWithFavorite);
+  // const cleanedStations = cleanStationsMetadata(stationsWithFavorite);
 
   return (
     <>

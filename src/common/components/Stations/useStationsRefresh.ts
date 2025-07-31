@@ -17,9 +17,12 @@ export const useStationsRefresh = (initialStations: IStationExtended[]): UseStat
   const refreshStations = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const data = await getStations();
+      if(!data.stations || data.stations.length === 0) {
+        throw new Error('No stations found in the response');
+      }
       setStations(data.stations);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch stations');
@@ -29,6 +32,8 @@ export const useStationsRefresh = (initialStations: IStationExtended[]): UseStat
   };
 
   useEffect(() => {
+    refreshStations();
+
     // Start the interval to refresh stations every 10 seconds
     intervalRef.current = setInterval(refreshStations, 10000);
 

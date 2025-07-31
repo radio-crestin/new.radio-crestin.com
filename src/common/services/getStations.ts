@@ -9,7 +9,6 @@ export const getStations = async () => {
     const client = new GraphQLClient(endpoint);
 
     const data = await client.request<any>(GET_STATIONS_QUERY_STRING);
-
     return {
       stations: data.stations || [],
       station_groups: data.station_groups || [],
