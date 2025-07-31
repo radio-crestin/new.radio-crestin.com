@@ -27,6 +27,7 @@
     gap: 10px;
   }
 
+
   .internal_links {
     display: flex;
     justify-content: center;
@@ -89,7 +90,7 @@
   margin: 0 100px;
 
   @include mixinHelper.onDesktop {
-    margin: 0 20px;
+    margin: 0 20px
   }
 
   @include mixinHelper.onTablet {
@@ -150,30 +151,8 @@
       line-height: 24px;
     }
   }
-
-  .welcome_info {
-    max-width: 230px;
-    min-height: 80px;
-
-    .welcome_title {
-      color: var(--text-color);
-      font-family: globalVariables.$dm-sans-bold, serif;
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 10px;
-      min-height: 30px;
-      line-height: 30px;
-    }
-
-    .welcome_subtitle {
-      color: var(--text-color);
-      min-height: 24px;
-      line-height: 24px;
-      font-style: italic;
-      opacity: 0.9;
-    }
-  }
 }
+
 
 .right_content {
   max-width: 850px;
@@ -211,42 +190,6 @@
 
         @include mixinHelper.onTablet {
           font-size: 1.7rem;
-        }
-      }
-    }
-
-    .daily_verse {
-      margin-top: 30px;
-      margin-bottom: 40px;
-
-      @include mixinHelper.onTablet {
-        margin-top: 20px;
-        margin-bottom: 30px;
-        text-align: center;
-      }
-
-      .verse_text {
-        font-size: 20px;
-        line-height: 30px;
-        font-weight: 400;
-        color: var(--text-color);
-        margin-bottom: 15px;
-        font-style: italic;
-
-        @include mixinHelper.onTablet {
-          font-size: 16px;
-          line-height: 24px;
-        }
-      }
-
-      .verse_reference {
-        font-size: 18px;
-        color: var(--text-color);
-        opacity: 0.8;
-        font-weight: 500;
-
-        @include mixinHelper.onTablet {
-          font-size: 14px;
         }
       }
     }
@@ -320,66 +263,6 @@
         height: 140px;
         min-height: 140px;
         -webkit-line-clamp: 7;
-      }
-    }
-
-    .share_on_social {
-      .share_buttons {
-        display: flex;
-        gap: 20px;
-        justify-content: flex-start;
-        align-items: center;
-        flex-wrap: wrap;
-
-        @include mixinHelper.onTablet {
-          gap: 15px;
-          justify-content: center;
-        }
-
-        .share_button {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 12px 24px;
-          border-radius: 30px;
-          font-size: 16px;
-          font-weight: 500;
-          text-decoration: none;
-          transition: all 0.3s ease;
-          border: 2px solid transparent;
-
-          @include mixinHelper.onTablet {
-            padding: 10px 20px;
-            font-size: 14px;
-          }
-
-          .social_icon {
-            width: 20px;
-            height: 20px;
-          }
-
-          &.facebook_button {
-            background-color: #1877f2;
-            color: white;
-
-            &:hover {
-              background-color: #166fe5;
-              transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
-            }
-          }
-
-          &.whatsapp_button {
-            background-color: #25d366;
-            color: white;
-
-            &:hover {
-              background-color: #128c7e;
-              transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
-            }
-          }
-        }
       }
     }
   }

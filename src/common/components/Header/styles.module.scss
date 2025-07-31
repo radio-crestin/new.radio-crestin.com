@@ -3,14 +3,14 @@
 
 .container {
   max-width: 1440px;
-  padding: 95px 70px;
+  padding: 60px 70px;
   background: var(--bg-header-container);
   height: 462px;
   border-radius: 50px;
   margin: 5rem auto 0;
 
   @include mixinHelper.onTablet {
-    padding: 35px 20px;
+    padding: 25px 20px;
     height: 100%;
     border-radius: 0;
   }
@@ -73,12 +73,12 @@
 .content_section {
   display: flex;
   flex-direction: row;
-  margin-top: 86px;
+  margin-top: 60px;
   gap: 30px;
   align-items: flex-start;
 
   @include mixinHelper.onTablet {
-    margin-top: 50px;
+    margin-top: 35px;
   }
 }
 
