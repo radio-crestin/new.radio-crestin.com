@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Hls from "hls.js";
 import useSpaceBarPress from "@/common/hooks/useSpaceBarPress";
@@ -228,6 +228,9 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   }, [streamType, getStreamUrl]);
 
   const resetAndReloadStream = React.useCallback(() => {
+    // Don't reload if we're in the middle of changing stations
+    if (isChangingStationRef.current) return;
+    
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
     if (!audio || !streamType || !currentStreamUrl) return;
 
@@ -292,6 +295,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   // Track loaded URL and station to prevent unnecessary reloads
   const [lastLoadedUrl, setLastLoadedUrl] = useState<string | null>(null);
   const [lastLoadedStation, setLastLoadedStation] = useState<string | null>(null);
+  const isChangingStationRef = useRef(false);
   
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -300,26 +304,30 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     // Skip if we're already loaded with this URL for the same station
     if (lastLoadedUrl === currentStreamUrl && lastLoadedStation === stationSlug) return;
 
-    // Clean up previous HLS instance when stream URL changes
+    // Mark that we're changing stations
+    isChangingStationRef.current = true;
+
+    // Clean up previous HLS instance before creating a new one
     setHlsInstance((prevHls) => {
-      if (prevHls) {
+      if (prevHls && lastLoadedUrl !== currentStreamUrl) {
+        // Stop and destroy the previous instance
         prevHls.stopLoad();
         prevHls.detachMedia();
         prevHls.destroy();
+        return null;
       }
-      return null;
+      return prevHls;
     });
-
-    let hls: Hls | null = null;
 
     // Check if audio is currently playing (not paused)
     const isCurrentlyPlaying = !audio.paused;
 
     switch (streamType) {
       case STREAM_TYPE.HLS:
-        hls = new Hls();
-        setHlsInstance(hls);
-        loadHLS(currentStreamUrl, audio, hls, isCurrentlyPlaying);
+        // Create new HLS instance
+        const newHls = new Hls();
+        setHlsInstance(newHls);
+        loadHLS(currentStreamUrl, audio, newHls, isCurrentlyPlaying);
         break;
       case STREAM_TYPE.PROXY:
       case STREAM_TYPE.ORIGINAL:
@@ -339,25 +347,17 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
     setLastLoadedUrl(currentStreamUrl);
     setLastLoadedStation(stationSlug || null);
+    
+    // Mark that we're done changing stations after a short delay
+    setTimeout(() => {
+      isChangingStationRef.current = false;
+    }, 100);
 
     return () => {
-      // Clean up HLS instance on unmount or dependencies change
-      if (hls) {
-        hls.stopLoad();
-        hls.detachMedia();
-        hls.destroy();
-      }
-      // Also clean up the state HLS instance
-      setHlsInstance((prevHls) => {
-        if (prevHls && prevHls !== hls) {
-          prevHls.stopLoad();
-          prevHls.detachMedia();
-          prevHls.destroy();
-        }
-        return null;
-      });
+      // Only cleanup on unmount, not on every dependency change
+      // The cleanup for station changes is handled at the beginning of the effect
     };
-  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle, stationSlug, lastLoadedUrl, lastLoadedStation]);
+  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle, stationSlug]);
 
   // Cleanup effect when component unmounts
   useEffect(() => {
