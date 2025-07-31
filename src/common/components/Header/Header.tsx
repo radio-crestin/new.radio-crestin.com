@@ -9,6 +9,7 @@ import { getStationRating } from "@/common/utils";
 import ShareOnSocial from "@/common/components/ShareOnSocial/ShareOnSocial";
 import ThemeToggle from "@/common/components/ThemeToggle/ThemeToggle";
 import WhatsAppButton from "@/common/components/WhatsAppButton/WhatsAppButton";
+import useStation from "@/common/store/useStation";
 import { IStationExtended } from "@/common/models/Station";
 
 const Navigation = () => (
@@ -69,10 +70,10 @@ const ContentLeft = ({ selectedStation }: ContentLeftProps) => {
       </div>
       <div className={styles.station_info}>
         <h2 className={styles.station_title}>
-          {selectedStation.now_playing?.song?.name || selectedStation.title || "\u00A0"}
+          {selectedStation.now_playing?.song?.name || selectedStation.title || ""}
         </h2>
         <p className={styles.station_artist}>
-          {selectedStation.now_playing?.song?.artist?.name || "\u00A0"}
+          {selectedStation.now_playing?.song?.artist?.name || ""}
         </p>
       </div>
     </div>
@@ -87,7 +88,7 @@ const ContentRight = ({ selectedStation }: ContentRightProps) => {
   const defaultImage = "/images/radiocrestin_logo.png";
   const stationImage = selectedStation?.thumbnail_url || defaultImage;
   const stationTitle = selectedStation?.title || "Radio Creștin";
-  const stationDescription = selectedStation?.description || "\u00A0";
+  const stationDescription = selectedStation?.description || "";
   const totalListeners = selectedStation?.total_listeners || 0;
 
   return (
@@ -121,8 +122,8 @@ const ContentRight = ({ selectedStation }: ContentRightProps) => {
           </>
         ) : (
           <>
-            <p className={styles.nr_listeners_desktop}>\u00A0</p>
-            <p className={styles.nr_listeners_mobile}>\u00A0</p>
+            <p className={styles.nr_listeners_desktop}></p>
+            <p className={styles.nr_listeners_mobile}></p>
           </>
         )}
         <p className={styles.station_description}>
@@ -142,13 +143,18 @@ interface HeaderProps {
 }
 
 const Header = ({ selectedStation = null }: HeaderProps) => {
+  const { currentStation } = useStation();
+  
+  // Use currentStation from store, fallback to prop for initial render
+  const activeStation = currentStation || selectedStation;
+  
   return (
     <>
       <header className={styles.container}>
         <Navigation />
         <div className={styles.content_section}>
-          <ContentLeft selectedStation={selectedStation} />
-          <ContentRight selectedStation={selectedStation} />
+          <ContentLeft selectedStation={activeStation} />
+          <ContentRight selectedStation={activeStation} />
         </div>
       </header>
     </>
