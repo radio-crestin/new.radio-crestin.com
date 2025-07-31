@@ -27,15 +27,25 @@ const StationItem = (data: IStation) => {
       href={data.slug}
       scroll={false}
       draggable={false}
+      prefetch={false}
+      shallow={true}
     >
       <div className={styles.image_container}>
-        {(data.now_playing?.song?.thumbnail_url || data?.thumbnail_url) && (
+        {(data.now_playing?.song?.thumbnail_url || data?.thumbnail_url) ? (
           <img
             src={data.now_playing?.song?.thumbnail_url || data?.thumbnail_url || ""}
             alt={`${data.title} | radiocrestin.ro`}
             loading={"lazy"}
             height={110}
             width={110}
+          />
+        ) : (
+          <div
+            className={styles.image_skeleton}
+            style={{
+              width: 110,
+              height: 110,
+            }}
           />
         )}
       </div>
