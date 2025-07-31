@@ -7,15 +7,15 @@ import { IStationExtended } from "@/common/models/Station";
 export function cleanStationsMetadata(stations: IStationExtended[]) {
   return stations.map((station: IStationExtended) => {
     // Set song's thumbnail_url and name for the first now_playing entry
-    if (station.now_playing?.[0]?.song) {
-      station.now_playing[0].song.thumbnail_url = null;
-      station.now_playing[0].song.name = "";
+    if (station.now_playing?.song) {
+      station.now_playing.song.thumbnail_url = null;
+      station.now_playing.song.name = "";
     }
 
     // Set artist's thumbnail_url and name
-    if (station.now_playing?.[0]?.song?.artist) {
-      station.now_playing[0].song.artist.thumbnail_url = null;
-      station.now_playing[0].song.artist.name = "";
+    if (station.now_playing?.song?.artist) {
+      station.now_playing.song.artist.thumbnail_url = null;
+      station.now_playing.song.artist.name = "";
     }
 
     // Set total_listeners to 0

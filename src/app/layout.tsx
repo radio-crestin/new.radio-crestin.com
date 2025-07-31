@@ -4,9 +4,9 @@ import { SEO_DEFAULT } from "@/common/utils/seo";
 import { ContextProvider } from "@/common/context/ContextProvider";
 import BugsnagErrorBoundary from "@/common/components/BugsnagErrorBoundary";
 import { ThemeProvider } from "next-themes";
-import AnalyticsScripts from "@/common/components/AnalyticsScripts";
+import AnalyticsScripts from "@/common/components/AnalyticsScripts/AnalyticsScripts";
 import { ToastContainer } from "react-toastify";
-import NoInternetConnection from "@/common/components/NoInternetConnection";
+import NoInternetConnection from "@/common/components/NoInternetConnection/NoInternetConnection";
 import "../../public/styles/_all.scss";
 import "react-toastify/dist/ReactToastify.css";
 

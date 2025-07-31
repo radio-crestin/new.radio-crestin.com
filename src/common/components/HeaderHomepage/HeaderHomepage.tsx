@@ -4,8 +4,8 @@ import Link from "next/link";
 import React from "react";
 
 import styles from "./styles.module.scss";
-import ThemeToggle from "@/common/components/ThemeToggle";
-import WhatsAppButton from "@/common/components/WhatsAppButton";
+import ThemeToggle from "@/common/components/ThemeToggle/ThemeToggle";
+import WhatsAppButton from "@/common/components/WhatsAppButton/WhatsAppButton";
 
 const Navigation = () => (
   <nav className={styles.nav}>

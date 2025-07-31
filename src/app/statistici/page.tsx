@@ -36,15 +36,11 @@ export const metadata: Metadata = {
 export default async function StatisticiPage() {
   const { stations } = await getStations();
   
-  // Add is_favorite property and convert arrays
+  // Add is_favorite property
   const stationsWithFavorite = stations.map((station: any) => ({
     ...station,
     is_favorite: false,
-    now_playing: station.now_playing ? [station.now_playing] : [],
-    uptime: station.uptime ? [station.uptime] : [],
   })) as IStationExtended[];
-  
-  const cleanedStations = cleanStationsMetadata(stationsWithFavorite);
 
   return (
     <div className={styles.container}>
@@ -52,7 +48,7 @@ export default async function StatisticiPage() {
         <Link href={"/"} className={styles.back_link}>
           <span>←</span> Inapoi
         </Link>
-        <StatisticsClient stations={cleanedStations} />
+        <StatisticsClient stations={stationsWithFavorite} />
         <p className={styles.info_text}>
           (radio-crestin.com / radiocrestin.ro / Radio Crestin mobile apps)
         </p>

@@ -361,8 +361,8 @@ export default function RadioPlayer() {
   useEffect(() => {
     if ("mediaSession" in navigator && station) {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: station.now_playing?.[0]?.song?.name || station.title,
-        artist: station.now_playing?.[0]?.song?.artist?.name || "",
+        title: station.now_playing?.song?.name || station.title,
+        artist: station.now_playing?.song?.artist?.name || "",
         artwork: [
           {
             src: station.thumbnail_url || CONSTANTS.DEFAULT_COVER,
@@ -438,7 +438,7 @@ export default function RadioPlayer() {
           <div className={styles.image_container}>
             <img
               src={
-                station.now_playing?.[0]?.song?.thumbnail_url ||
+                station.now_playing?.song?.thumbnail_url ||
                 station.thumbnail_url ||
                 CONSTANTS.DEFAULT_COVER
               }
@@ -459,11 +459,11 @@ export default function RadioPlayer() {
           <div className={`${styles.station_info} ${styles.two_lines}`}>
             <h2 className={styles.station_title}>{station.title}</h2>
             <p className={styles.song_name}>
-              {station?.now_playing?.[0]?.song?.name}
-              {station?.now_playing?.[0]?.song?.artist?.name && (
+              {station?.now_playing?.song?.name}
+              {station?.now_playing?.song?.artist?.name && (
                 <span className={styles.artist_name}>
                   {" · "}
-                  {station?.now_playing?.[0]?.song?.artist?.name}
+                  {station?.now_playing?.song?.artist?.name}
                 </span>
               )}
             </p>

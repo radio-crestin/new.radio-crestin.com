@@ -1,10 +1,10 @@
 import React from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Header from "@/common/components/Header";
-import Stations from "@/common/components/Stations";
-import DownloadAppBanner from "@/common/components/DownloadAppBanner";
-import FooterLinks from "@/common/components/FooterLinks";
+import Header from "@/common/components/Header/Header";
+import Stations from "@/common/components/Stations/Stations";
+import DownloadAppBanner from "@/common/components/DownloadAppBanner/DownloadAppBanner";
+import FooterLinks from "@/common/components/FooterLinks/FooterLinks";
 import { seoStation } from "@/common/utils/seo";
 import { getStations } from "@/common/services/getStations";
 import { cleanStationsMetadata } from "@/common/utils";
@@ -30,15 +30,13 @@ export async function generateMetadata({
 }: StationPageProps): Promise<Metadata> {
   const { station_slug } = await params;
   const { stations } = await getStations();
-  
-  // Add is_favorite property and convert arrays
+
+  // Add is_favorite property
   const stationsWithFavorite = stations.map((station: any) => ({
     ...station,
     is_favorite: false,
-    now_playing: station.now_playing ? [station.now_playing] : [],
-    uptime: station.uptime ? [station.uptime] : [],
   })) as IStationExtended[];
-  
+
   const selectedStation = stationsWithFavorite.find(
     (station) => station.slug === station_slug
   );
@@ -84,15 +82,12 @@ export async function generateMetadata({
 export default async function StationPage({ params }: StationPageProps) {
   const { station_slug } = await params;
   const { stations } = await getStations();
-  
-  // Add is_favorite property and convert arrays
+  // Add is_favorite property
   const stationsWithFavorite = stations.map((station: any) => ({
     ...station,
     is_favorite: false,
-    now_playing: station.now_playing ? [station.now_playing] : [],
-    uptime: station.uptime ? [station.uptime] : [],
   })) as IStationExtended[];
-  
+
   const selectedStation = stationsWithFavorite.find(
     (station) => station.slug === station_slug
   );
@@ -100,17 +95,18 @@ export default async function StationPage({ params }: StationPageProps) {
   if (!selectedStation) {
     notFound();
   }
-  
+
   // Clean metadata for all stations
-  const cleanedStations = cleanStationsMetadata(stationsWithFavorite);
+  // const cleanedStations = cleanStationsMetadata(stationsWithFavorite);
 
   return (
     <StationContextProvider
+      stations={stationsWithFavorite}
       selectedStation={selectedStation}
       stationSlug={station_slug}
     >
       <Header />
-      <Stations initialStations={cleanedStations} />
+      <Stations />
       <DownloadAppBanner />
       <FooterLinks />
     </StationContextProvider>
@@ -118,4 +114,4 @@ export default async function StationPage({ params }: StationPageProps) {
 }
 
 // Enable ISR with 30 seconds revalidation
-// export const revalidate = 30;
+export const revalidate = 30;
