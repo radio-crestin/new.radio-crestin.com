@@ -12,6 +12,7 @@ import WhatsAppButton from "@/common/components/WhatsAppButton/WhatsAppButton";
 import useStation from "@/common/store/useStation";
 import { IStationExtended } from "@/common/models/Station";
 import { useStationsData } from "@/common/hooks/useStationsData";
+import { useSelectedStation } from "@/common/providers/SelectedStationProvider";
 
 const Navigation = () => (
   <nav className={styles.nav}>
@@ -143,18 +144,12 @@ interface HeaderProps {
   selectedStation?: IStationExtended | null;
 }
 
-const Header = ({ selectedStation = null }: HeaderProps) => {
+const Header = ({ selectedStation: propSelectedStation = null }: HeaderProps) => {
   const { currentStation } = useStation();
+  const { selectedStation: contextSelectedStation } = useSelectedStation();
   
-  // Use singleton stations data with automatic refresh
-  const { stations } = useStationsData();
-  
-  // Find the current station from the refreshed stations list
-  const activeStation = useMemo(() => {
-    const stationToUse = currentStation || selectedStation;
-    if (!stationToUse) return null;
-    return stations.find(station => station.id === stationToUse.id) || stationToUse;
-  }, [stations, currentStation, selectedStation]);
+  // Use context selectedStation if available, otherwise fall back to prop
+  const activeStation = contextSelectedStation || currentStation || propSelectedStation;
   
   return (
     <>

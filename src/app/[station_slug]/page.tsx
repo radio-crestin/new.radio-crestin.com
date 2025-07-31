@@ -10,6 +10,7 @@ import { seoStation } from "@/common/utils/seo";
 import { getStations } from "@/common/services/getStations";
 import { cleanStationsMetadata } from "@/common/utils";
 import type { IStation, IStationExtended } from "@/common/models/Station";
+import { SelectedStationProvider } from "@/common/providers/SelectedStationProvider";
 
 interface StationPageProps {
   params: Promise<{
@@ -100,13 +101,13 @@ export default async function StationPage({ params }: StationPageProps) {
   // const cleanedStations = cleanStationsMetadata(stationsWithFavorite);
 
   return (
-    <>
+    <SelectedStationProvider initialStation={selectedStation} initialStations={stationsWithFavorite}>
       <Header selectedStation={selectedStation} />
       <Stations stations={stationsWithFavorite} />
       <DownloadAppBanner />
       <FooterLinks />
       <RadioPlayer initialStation={selectedStation} />
-    </>
+    </SelectedStationProvider>
   );
 }
 

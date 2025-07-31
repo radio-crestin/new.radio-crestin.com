@@ -8,9 +8,11 @@ import HeadphoneIcon from "@/icons/Headphone";
 import Heart from "@/icons/Heart";
 import useFavourite from "@/common/store/useFavourite";
 import { useEffect, useState } from "react";
+import { useSelectedStation } from "@/common/providers/SelectedStationProvider";
 
 const StationItem = (data: IStation) => {
   const { favouriteItems, toggleFavourite } = useFavourite();
+  const { setSelectedStation, stations } = useSelectedStation();
   const [isStationFavourite, setIsStationFavourite] = useState(false);
   const isActive = false; // Removed store dependency for URL-based navigation
 
@@ -18,6 +20,13 @@ const StationItem = (data: IStation) => {
     setIsStationFavourite(favouriteItems.includes(data.slug));
   }, [data.slug, favouriteItems]);
 
+
+  const handleClick = () => {
+    const fullStation = stations.find(s => s.slug === data.slug);
+    if (fullStation) {
+      setSelectedStation(fullStation);
+    }
+  };
 
   return (
     <Link
@@ -27,8 +36,7 @@ const StationItem = (data: IStation) => {
       href={data.slug}
       scroll={false}
       draggable={false}
-      prefetch={false}
-      shallow={true}
+      onClick={handleClick}
     >
       <div className={styles.image_container}>
         {(data.now_playing?.song?.thumbnail_url || data?.thumbnail_url) ? (

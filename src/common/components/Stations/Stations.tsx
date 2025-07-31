@@ -10,14 +10,19 @@ import CloseIcon from "@/icons/CloseIcon";
 import WhatsAppBibleGroup from "@/common/components/WhatsAppBibleGroup/WhatsAppBibleGroup";
 import useFavourite from "@/common/store/useFavourite";
 import { useStationsData } from "@/common/hooks/useStationsData";
+import { useSelectedStation } from "@/common/providers/SelectedStationProvider";
 
 interface StationsProps {
   stations: IStationExtended[];
 }
 
-const Stations = ({ stations: initialStations }: StationsProps) => {
+const Stations = ({ stations: propStations }: StationsProps) => {
   const { favouriteItems } = useFavourite();
-  const { stations } = useStationsData(initialStations);
+  const { stations: contextStations } = useSelectedStation();
+  
+  // Use context stations if available, otherwise fall back to prop
+  const stations = contextStations.length > 0 ? contextStations : propStations;
+  
   const [filteredStations, setFilteredStations] = useState(stations);
   const [searchedValue, setSearchedValue] = useState("");
 

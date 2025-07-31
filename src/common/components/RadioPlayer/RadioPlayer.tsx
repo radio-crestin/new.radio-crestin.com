@@ -15,6 +15,7 @@ import useFavourite from "@/common/store/useFavourite";
 import { Bugsnag } from "@/common/utils/bugsnag";
 import { IStationStreams, IStationExtended } from "@/common/models/Station";
 import { useStationsData } from "@/common/hooks/useStationsData";
+import { useSelectedStation } from "@/common/providers/SelectedStationProvider";
 
 enum STREAM_TYPE {
   HLS = "HLS",
@@ -38,14 +39,9 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
 
-  // Use singleton stations data with automatic refresh
-  const { stations } = useStationsData();
-  
-  // Find the current station from the refreshed stations list
-  const activeStation = useMemo(() => {
-    if (!initialStation) return null;
-    return stations.find(station => station.id === initialStation.id) || initialStation;
-  }, [stations, initialStation]);
+  // Use context selectedStation if available, otherwise fall back to initialStation
+  const { selectedStation: contextStation, stations } = useSelectedStation();
+  const activeStation = contextStation || initialStation;
 
   // Memoize critical station values to prevent unnecessary re-renders
   const stationId = useMemo(() => activeStation?.id, [activeStation?.id]);
