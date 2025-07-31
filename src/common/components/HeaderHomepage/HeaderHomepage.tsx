@@ -61,7 +61,7 @@ const ContentLeft = () => {
 const ContentRight = () => {
   const defaultImage = "/images/radiocrestin_logo.png";
   const dailyVerse = {
-    text: "„Iubesc pe Domnul, căci El aude glasul meu, cererile mele. Da, El Și-a plecat urechea spre mine, de aceea-L voi chema toată viața mea."",
+    text: `„Iubesc pe Domnul, căci El aude glasul meu, cererile mele. Da, El Și-a plecat urechea spre mine, de aceea-L voi chema toată viața mea."`,
     reference: "Psalmii 116:1-2"
   };
 
