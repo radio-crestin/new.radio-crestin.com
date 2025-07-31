@@ -1,14 +1,14 @@
-import { graphqlFetch } from "./graphqlFetch";
+import { GraphQLClient } from 'graphql-request';
 import {
   GET_STATIONS_QUERY_STRING
 } from "@/common/graphql/queryStrings";
 
 export const getStations = async () => {
   try {
-    const data = await graphqlFetch<any>(
-      GET_STATIONS_QUERY_STRING,
-      {}
-    );
+    const endpoint = process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "";
+    const client = new GraphQLClient(endpoint);
+    
+    const data = await client.request<any>(GET_STATIONS_QUERY_STRING);
 
     return {
       stations: data.stations || [],
