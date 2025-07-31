@@ -77,13 +77,34 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
     audio.volume = playerVolume / 100;
   }, [playerVolume]);
 
+  const getOrCreateSessionUUID = React.useCallback(() => {
+    const storageKey = 'radio-crestin-session-uuid';
+    let uuid = localStorage.getItem(storageKey);
+    
+    if (!uuid) {
+      uuid = crypto.randomUUID();
+      localStorage.setItem(storageKey, uuid);
+    }
+    
+    return uuid;
+  }, []);
+
   const getStreamUrl = React.useCallback((type: STREAM_TYPE | null) => {
     if (!type || !stationStreams.length) return null;
     const stream = stationStreams.find(
       (stream: IStationStreams) => stream.type === type,
     );
-    return stream?.stream_url || null;
-  }, [stationStreams]);
+    
+    if (!stream?.stream_url) return null;
+    
+    const uuid = getOrCreateSessionUUID();
+    const currentDomain = window.location.hostname;
+    const url = new URL(stream.stream_url);
+    url.searchParams.set('ref', currentDomain);
+    url.searchParams.set('s', uuid);
+    
+    return url.toString();
+  }, [stationStreams, getOrCreateSessionUUID]);
 
   const retryMechanism = React.useCallback(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
