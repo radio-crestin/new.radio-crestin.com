@@ -8,7 +8,6 @@ import { Loading } from "@/icons/Loading";
 import { CONSTANTS } from "@/common/constants/constants";
 import styles from "./styles.module.scss";
 import usePlayer from "@/common/store/usePlayer";
-import useStation from "@/common/store/useStation";
 import { PLAYBACK_STATE } from "@/common/models/enum";
 import { toast } from "react-toastify";
 import Heart from "@/icons/Heart";
@@ -31,7 +30,6 @@ interface RadioPlayerProps {
 
 export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   const { playerVolume, setPlayerVolume } = usePlayer();
-  const { currentStation, setCurrentStation, setAllStations } = useStation();
   const [playbackState, setPlaybackState] = useState(PLAYBACK_STATE.STOPPED);
   const router = useRouter();
   const [retries, setRetries] = useState(MAX_MEDIA_RETRIES);
@@ -40,16 +38,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
 
-  // Initialize store with server data
-  useEffect(() => {
-    setAllStations(stations);
-    if (station && !currentStation) {
-      setCurrentStation(station);
-    }
-  }, [station, stations, currentStation, setCurrentStation, setAllStations]);
-
-  // Use currentStation from store, fallback to prop for initial render
-  const activeStation = currentStation || station;
+  const activeStation = station;
 
   // Memoize critical station values to prevent unnecessary re-renders
   const stationId = useMemo(() => activeStation?.id, [activeStation?.id]);
