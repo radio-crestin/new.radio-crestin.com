@@ -5,11 +5,11 @@ import React, { useContext } from "react";
 
 import styles from "./styles.module.scss";
 import { Context } from "@/common/context/ContextProvider";
-import Rating from "@/common/components/Rating";
+import Rating from "@/common/components/Rating/Rating";
 import { getStationRating } from "@/common/utils";
-import ShareOnSocial from "@/common/components/ShareOnSocial";
-import ThemeToggle from "@/common/components/ThemeToggle";
-import WhatsAppButton from "@/common/components/WhatsAppButton";
+import ShareOnSocial from "@/common/components/ShareOnSocial/ShareOnSocial";
+import ThemeToggle from "@/common/components/ThemeToggle/ThemeToggle";
+import WhatsAppButton from "@/common/components/WhatsAppButton/WhatsAppButton";
 
 const Navigation = () => (
   <nav className={styles.nav}>
@@ -42,51 +42,47 @@ const ContentLeft = () => {
 
   if (!selectedStation) return null;
 
+  const defaultImage = "/images/radiocrestin_logo.png";
+  const stationImage = selectedStation?.thumbnail_url || defaultImage;
+  const songImage = selectedStation.now_playing?.song?.thumbnail_url;
+
   return (
     <div className={styles.left_content}>
-      {ctx.selectedStation && (
-        <>
-          {selectedStation.now_playing?.[0]?.song?.thumbnail_url ? (
-            <div className={styles.container_img_plus_thumb}>
-              <img
-                loading={"lazy"}
-                src={selectedStation.now_playing?.[0]?.song?.thumbnail_url}
-                alt={selectedStation.title}
-                width={230}
-                height={230}
-              />
-              {selectedStation?.thumbnail_url && (
-                <img
-                  loading={"lazy"}
-                  src={selectedStation.thumbnail_url}
-                  alt={selectedStation.title}
-                  className={styles.img_thumb}
-                  width={230}
-                  height={230}
-                />
-              )}
-            </div>
-          ) : (
-            selectedStation?.thumbnail_url && (
-              <img
-                loading={"lazy"}
-                src={selectedStation.thumbnail_url}
-                alt={selectedStation.title}
-                width={230}
-                height={230}
-              />
-            )
-          )}
-          <div className={styles.station_info}>
-            <h2 className={styles.station_title}>
-              {selectedStation.now_playing?.[0]?.song?.name || selectedStation.title}
-            </h2>
-            <p className={styles.station_artist}>
-              {selectedStation.now_playing?.[0]?.song?.artist?.name}
-            </p>
-          </div>
-        </>
+      {songImage ? (
+        <div className={styles.container_img_plus_thumb}>
+          <img
+            loading={"lazy"}
+            src={songImage}
+            alt={selectedStation.title || "Station"}
+            width={230}
+            height={230}
+          />
+          <img
+            loading={"lazy"}
+            src={stationImage}
+            alt={selectedStation.title || "Station"}
+            className={styles.img_thumb}
+            width={230}
+            height={230}
+          />
+        </div>
+      ) : (
+        <img
+          loading={"lazy"}
+          src={stationImage}
+          alt={selectedStation.title || "Station"}
+          width={230}
+          height={230}
+        />
       )}
+      <div className={styles.station_info}>
+        <h2 className={styles.station_title}>
+          {selectedStation.now_playing?.song?.name || selectedStation.title || "\u00A0"}
+        </h2>
+        <p className={styles.station_artist}>
+          {selectedStation.now_playing?.song?.artist?.name || "\u00A0"}
+        </p>
+      </div>
     </div>
   );
 };
@@ -98,19 +94,23 @@ const ContentRight = () => {
   }
   const { ctx } = context;
 
+  const defaultImage = "/images/radiocrestin_logo.png";
+  const stationImage = ctx.selectedStation?.thumbnail_url || defaultImage;
+  const stationTitle = ctx.selectedStation?.title || "Radio Creștin";
+  const stationDescription = ctx.selectedStation?.description || "\u00A0";
+  const totalListeners = ctx.selectedStation?.total_listeners || 0;
+
   return (
     <div className={styles.right_content}>
       <div className={styles.station_details}>
         <div className={styles.title_container}>
-          {ctx.selectedStation?.thumbnail_url && (
-            <img
-              src={ctx.selectedStation.thumbnail_url}
-              alt="Radio Crestin"
-              height={100}
-              width={100}
-            />
-          )}
-          <h1 className={styles.station_title}>{ctx.selectedStation?.title}</h1>
+          <img
+            src={stationImage}
+            alt={stationTitle}
+            height={100}
+            width={100}
+          />
+          <h1 className={styles.station_title}>{stationTitle}</h1>
         </div>
         <div className={styles.rating_wrapper}>
           <Rating
@@ -119,19 +119,24 @@ const ContentRight = () => {
           />
           <span>({ctx.selectedStation?.reviews?.length || 0} recenzii)</span>
         </div>
-        {ctx.selectedStation?.total_listeners !== 0 && (
+        {totalListeners !== 0 ? (
           <>
             <p className={styles.nr_listeners_desktop}>
-              {ctx.selectedStation?.total_listeners} persoane ascultă împreună
+              {totalListeners} persoane ascultă împreună
               cu tine acest radio
             </p>
             <p className={styles.nr_listeners_mobile}>
-              {ctx.selectedStation?.total_listeners} ascultători
+              {totalListeners} ascultători
             </p>
+          </>
+        ) : (
+          <>
+            <p className={styles.nr_listeners_desktop}>\u00A0</p>
+            <p className={styles.nr_listeners_mobile}>\u00A0</p>
           </>
         )}
         <p className={styles.station_description}>
-          {ctx.selectedStation?.description}
+          {stationDescription}
         </p>
 
         <div className={styles.share_on_social}>
