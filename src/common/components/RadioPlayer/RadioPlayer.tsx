@@ -292,9 +292,15 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     };
   }, [stationSlug, playerVolume]);
 
+  // Track if stream URL actually changed to prevent unnecessary reloads
+  const [lastLoadedUrl, setLastLoadedUrl] = useState<string | null>(null);
+  
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
     if (!audio || !streamType || !currentStreamUrl) return;
+
+    // Skip if we're already loaded with this URL
+    if (lastLoadedUrl === currentStreamUrl) return;
 
     // Clean up previous HLS instance when stream URL changes
     setHlsInstance((prevHls) => {
@@ -308,19 +314,19 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
     let hls: Hls | null = null;
 
-    // Only setup new stream - don't auto-play unless player is actively playing
-    const shouldAutoPlay = playbackState === PLAYBACK_STATE.PLAYING || playbackState === PLAYBACK_STATE.STARTED;
+    // Check if audio is currently playing (not paused)
+    const isCurrentlyPlaying = !audio.paused;
 
     switch (streamType) {
       case STREAM_TYPE.HLS:
         hls = new Hls();
         setHlsInstance(hls);
-        loadHLS(currentStreamUrl, audio, hls, shouldAutoPlay);
+        loadHLS(currentStreamUrl, audio, hls, isCurrentlyPlaying);
         break;
       case STREAM_TYPE.PROXY:
       case STREAM_TYPE.ORIGINAL:
         audio.src = currentStreamUrl;
-        if (shouldAutoPlay) {
+        if (isCurrentlyPlaying) {
           audio.play().catch((error) => {
             Bugsnag.notify(
               new Error(
@@ -332,6 +338,8 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
         }
         break;
     }
+
+    setLastLoadedUrl(currentStreamUrl);
 
     return () => {
       // Clean up HLS instance on unmount or dependencies change
@@ -350,7 +358,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
         return null;
       });
     };
-  }, [streamType, currentStreamUrl, playbackState, loadHLS, retryMechanism, stationTitle]);
+  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle]);
 
   // Cleanup effect when component unmounts
   useEffect(() => {
