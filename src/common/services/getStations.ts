@@ -6,7 +6,9 @@ import {
 export const getStations = async () => {
   try {
     const endpoint = process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "";
-    const client = new GraphQLClient(endpoint);
+    const client = new GraphQLClient(endpoint, {
+      mode: 'no-cors'
+    });
     
     const data = await client.request<any>(GET_STATIONS_QUERY_STRING);
 
