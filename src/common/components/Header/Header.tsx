@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import React, { useContext } from "react";
+import React from "react";
 
 import styles from "./styles.module.scss";
-import { Context } from "@/common/context/ContextProvider";
 import Rating from "@/common/components/Rating/Rating";
 import { getStationRating } from "@/common/utils";
 import ShareOnSocial from "@/common/components/ShareOnSocial/ShareOnSocial";
 import ThemeToggle from "@/common/components/ThemeToggle/ThemeToggle";
 import WhatsAppButton from "@/common/components/WhatsAppButton/WhatsAppButton";
+import { IStationExtended } from "@/common/models/Station";
 
 const Navigation = () => (
   <nav className={styles.nav}>
@@ -32,14 +32,11 @@ const Navigation = () => (
   </nav>
 );
 
-const ContentLeft = () => {
-  const context = useContext(Context);
-  if (!context) {
-    throw new Error("Component must be used within ContextProvider");
-  }
-  const { ctx } = context;
-  const { selectedStation } = ctx;
+interface ContentLeftProps {
+  selectedStation: IStationExtended | null;
+}
 
+const ContentLeft = ({ selectedStation }: ContentLeftProps) => {
   if (!selectedStation) return null;
 
   const defaultImage = "/images/radiocrestin_logo.png";
@@ -82,18 +79,16 @@ const ContentLeft = () => {
   );
 };
 
-const ContentRight = () => {
-  const context = useContext(Context);
-  if (!context) {
-    throw new Error("Component must be used within ContextProvider");
-  }
-  const { ctx } = context;
+interface ContentRightProps {
+  selectedStation: IStationExtended | null;
+}
 
+const ContentRight = ({ selectedStation }: ContentRightProps) => {
   const defaultImage = "/images/radiocrestin_logo.png";
-  const stationImage = ctx.selectedStation?.thumbnail_url || defaultImage;
-  const stationTitle = ctx.selectedStation?.title || "Radio Creștin";
-  const stationDescription = ctx.selectedStation?.description || "\u00A0";
-  const totalListeners = ctx.selectedStation?.total_listeners || 0;
+  const stationImage = selectedStation?.thumbnail_url || defaultImage;
+  const stationTitle = selectedStation?.title || "Radio Creștin";
+  const stationDescription = selectedStation?.description || "\u00A0";
+  const totalListeners = selectedStation?.total_listeners || 0;
 
   return (
     <div className={styles.right_content}>
@@ -109,10 +104,10 @@ const ContentRight = () => {
         </div>
         <div className={styles.rating_wrapper}>
           <Rating
-            score={getStationRating(ctx.selectedStation?.reviews || [])}
+            score={getStationRating(selectedStation?.reviews || [])}
             starHeight={22}
           />
-          <span>({ctx.selectedStation?.reviews?.length || 0} recenzii)</span>
+          <span>({selectedStation?.reviews?.length || 0} recenzii)</span>
         </div>
         {totalListeners !== 0 ? (
           <>
@@ -135,21 +130,25 @@ const ContentRight = () => {
         </p>
 
         <div className={styles.share_on_social}>
-          <ShareOnSocial />
+          <ShareOnSocial station={selectedStation} />
         </div>
       </div>
     </div>
   );
 };
 
-const Header = () => {
+interface HeaderProps {
+  selectedStation?: IStationExtended | null;
+}
+
+const Header = ({ selectedStation = null }: HeaderProps) => {
   return (
     <>
       <header className={styles.container}>
         <Navigation />
         <div className={styles.content_section}>
-          <ContentLeft />
-          <ContentRight />
+          <ContentLeft selectedStation={selectedStation} />
+          <ContentRight selectedStation={selectedStation} />
         </div>
       </header>
     </>

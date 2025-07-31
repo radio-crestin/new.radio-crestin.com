@@ -1,27 +1,30 @@
 "use client";
 
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { IStationExtended } from "@/common/models/Station";
 import styles from "./styles.module.scss";
-import { Context } from "@/common/context/ContextProvider";
 import FavoriteItem from "@/common/components/FavoriteItem/FavoriteItem";
 import StationItem from "@/common/components/StationItem/StationItem";
 import { Magnify } from "@/icons/Magnify";
 import CloseIcon from "@/icons/CloseIcon";
 import WhatsAppBibleGroup from "@/common/components/WhatsAppBibleGroup/WhatsAppBibleGroup";
+import useFavourite from "@/common/store/useFavourite";
 
-const Stations = () => {
-  const context = useContext(Context);
-  if (!context) {
-    throw new Error("Stations must be used within ContextProvider");
-  }
-  const { ctx } = context;
-  const stations = ctx.stations;
+interface StationsProps {
+  stations: IStationExtended[];
+}
+
+const Stations = ({ stations }: StationsProps) => {
+  const { favouriteItems } = useFavourite();
   const [filteredStations, setFilteredStations] = useState(stations);
   const [searchedValue, setSearchedValue] = useState("");
 
+  const favouriteStations = stations.filter(station =>
+    favouriteItems.includes(station.slug)
+  );
 
-  const handleSearch = () => {
+
+  const handleSearch = useCallback(() => {
     let newFilteredStations = [];
     // Filter by station title
     newFilteredStations.push(
@@ -54,7 +57,7 @@ const Stations = () => {
     );
 
     setFilteredStations(newFilteredStations);
-  };
+  }, [searchedValue, stations]);
 
   useEffect(() => {
     if (searchedValue) {
@@ -62,12 +65,12 @@ const Stations = () => {
     } else {
       setFilteredStations(stations);
     }
-  }, [searchedValue, stations]);
+  }, [searchedValue, stations, handleSearch]);
 
 
   useEffect(() => {
     if (
-      ctx.favouriteStations.length > 0 &&
+      favouriteStations.length > 0 &&
       document.getElementsByClassName("apasa_aici_move").length > 0
     ) {
       document.getElementsByClassName("apasa_aici_move")[0].remove();
@@ -77,11 +80,11 @@ const Stations = () => {
       let scrollPosition = favouriteSection[0].offsetTop - 100;
       window.scrollTo({ top: scrollPosition, behavior: "smooth" });
     }
-  }, [ctx.favouriteStations]);
+  }, [favouriteStations]);
 
   useEffect(() => {
     handleSearch();
-  }, [searchedValue]);
+  }, [searchedValue, handleSearch]);
 
 
   const handleKeyPress = (event: any) => {
@@ -116,9 +119,9 @@ const Stations = () => {
       <WhatsAppBibleGroup />
       <div className={styles.favourite_section} data-info={"favourite-section"}>
         <h1>Stații favorite:</h1>
-        {ctx.favouriteStations.length > 0 ? (
+        {favouriteStations.length > 0 ? (
           <div className={styles.stations_container}>
-            {ctx.favouriteStations.map((station: IStationExtended) => {
+            {favouriteStations.map((station: IStationExtended) => {
               return (
                 <React.Fragment key={`favourite-${station.id}-${station.slug}`}>
                   <FavoriteItem {...station} />

@@ -1,20 +1,19 @@
 "use client";
 
-import React, { useContext, useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Hls from "hls.js";
 import useSpaceBarPress from "@/common/hooks/useSpaceBarPress";
 import { Loading } from "@/icons/Loading";
 import { CONSTANTS } from "@/common/constants/constants";
 import styles from "./styles.module.scss";
-import { Context } from "@/common/context/ContextProvider";
 import usePlayer from "@/common/store/usePlayer";
 import { PLAYBACK_STATE } from "@/common/models/enum";
 import { toast } from "react-toastify";
 import Heart from "@/icons/Heart";
 import useFavourite from "@/common/store/useFavourite";
 import { Bugsnag } from "@/common/utils/bugsnag";
-import { IStationStreams } from "@/common/models/Station";
+import { IStationStreams, IStationExtended } from "@/common/models/Station";
 
 enum STREAM_TYPE {
   HLS = "HLS",
@@ -24,15 +23,14 @@ enum STREAM_TYPE {
 
 const MAX_MEDIA_RETRIES = 20;
 
-export default function RadioPlayer() {
-  const context = useContext(Context);
-  if (!context) {
-    throw new Error("RadioPlayer must be used within ContextProvider");
-  }
-  const { ctx } = context;
+interface RadioPlayerProps {
+  station: IStationExtended | null;
+  stations: IStationExtended[];
+}
+
+export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   const { playerVolume, setPlayerVolume } = usePlayer();
   const [playbackState, setPlaybackState] = useState(PLAYBACK_STATE.STOPPED);
-  const station = ctx.selectedStation;
   const router = useRouter();
   const [retries, setRetries] = useState(MAX_MEDIA_RETRIES);
   const [streamType, setStreamType] = useState<STREAM_TYPE | null>(null);
@@ -147,7 +145,7 @@ export default function RadioPlayer() {
         return 0;
       }
     });
-  }, [station, streamType, stationStreams, stationTitle]);
+  }, [station, streamType, stationTitle]);
 
   const loadHLS = React.useCallback((
     hls_stream_url: string,
@@ -346,7 +344,7 @@ export default function RadioPlayer() {
   }, []);
 
   const nextRandomStation = React.useCallback(() => {
-    const upStations = ctx.stations.filter(
+    const upStations = stations.filter(
       (station: any) => station.uptime.is_up === true,
     );
 
@@ -356,7 +354,7 @@ export default function RadioPlayer() {
     const nextStation = upStations[nextIndex % upStations.length];
 
     router.push(`/${nextStation.slug}`);
-  }, [ctx.stations, stationId, router]);
+  }, [stations, stationId, router]);
 
   useEffect(() => {
     if ("mediaSession" in navigator && station) {

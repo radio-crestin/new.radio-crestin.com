@@ -1,7 +1,6 @@
 import React from "react";
 import type { Metadata } from "next";
 import { SEO_DEFAULT } from "@/common/utils/seo";
-import { ContextProvider } from "@/common/context/ContextProvider";
 import BugsnagErrorBoundary from "@/common/components/BugsnagErrorBoundary";
 import { ThemeProvider } from "next-themes";
 import AnalyticsScripts from "@/common/components/AnalyticsScripts/AnalyticsScripts";
@@ -71,23 +70,21 @@ export default function RootLayout({
       <body>
         <BugsnagErrorBoundary>
           <ThemeProvider attribute="data-theme" enableSystem={true} defaultTheme="system" disableTransitionOnChange={true}>
-            <ContextProvider>
-              <NoInternetConnection>
-                {children}
-                <ToastContainer
-                  position="bottom-center"
-                  autoClose={3000}
-                  hideProgressBar={false}
-                  newestOnTop={false}
-                  closeOnClick
-                  rtl={false}
-                  pauseOnFocusLoss
-                  draggable
-                  pauseOnHover
-                  theme="dark"
-                />
-              </NoInternetConnection>
-            </ContextProvider>
+            <NoInternetConnection>
+              {children}
+              <ToastContainer
+                position="bottom-center"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="dark"
+              />
+            </NoInternetConnection>
           </ThemeProvider>
         </BugsnagErrorBoundary>
         <AnalyticsScripts />

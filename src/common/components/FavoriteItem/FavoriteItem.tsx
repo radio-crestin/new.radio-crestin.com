@@ -2,24 +2,17 @@
 
 import Link from "next/link";
 
-import { IStation } from "@/common/models/Station";
+import { IStation, IStationExtended } from "@/common/models/Station";
 import styles from "./styles.module.scss";
 import useFavourite from "@/common/store/useFavourite";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Heart from "@/icons/Heart";
-import { Context } from "@/common/context/ContextProvider";
 
 const FavouriteItem = (data: IStation) => {
-  const context = useContext(Context);
   const { favouriteItems, toggleFavourite } = useFavourite();
   const [isStationFavourite, setIsStationFavourite] = useState(false);
   
-  if (!context) {
-    throw new Error("FavouriteItem must be used within ContextProvider");
-  }
-  
-  const { ctx } = context;
-  const isActive = ctx.selectedStation?.slug === data.slug;
+  const isActive = false; // Removed context dependency for static rendering
 
   useEffect(() => {
     setIsStationFavourite(favouriteItems.includes(data.slug));

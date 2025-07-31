@@ -1,17 +1,13 @@
-import React, { useContext } from "react";
+import React from "react";
 
 import styles from "./styles.module.scss";
 import { IStation } from "@/common/models/Station";
-import { Context } from "@/common/context/ContextProvider";
 
+interface ShareOnSocialProps {
+  station?: IStation | null;
+}
 
-export default function ShareOnSocial() {
-  const context = useContext(Context);
-  if (!context) {
-    throw new Error("ShareOnSocial must be used within ContextProvider");
-  }
-  const { ctx } = context;
-  const station = ctx?.selectedStation as IStation;
+export default function ShareOnSocial({ station }: ShareOnSocialProps) {
   if(!station) return null;
   const url = `https://share.radiocrestin.ro/${station.slug}`
   const message = `Ascultă și tu ${station.title}: \n${url}`

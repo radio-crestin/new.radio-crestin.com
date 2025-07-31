@@ -1,7 +1,7 @@
 import React from "react";
 import { Metadata } from "next";
 import HeaderHomepage from "@/common/components/HeaderHomepage/HeaderHomepage";
-import StationsWrapper from "./StationsWrapper";
+import Stations from "@/common/components/Stations/Stations";
 import DownloadAppBanner from "@/common/components/DownloadAppBanner/DownloadAppBanner";
 import FooterLinks from "@/common/components/FooterLinks/FooterLinks";
 import { SEO_DEFAULT } from "@/common/utils/seo";
@@ -29,7 +29,7 @@ export default async function HomePage() {
   return (
     <>
       <HeaderHomepage />
-      <StationsWrapper initialStations={stationsWithFavorite} />
+      <Stations stations={stationsWithFavorite} />
       <DownloadAppBanner />
       <FooterLinks />
     </>

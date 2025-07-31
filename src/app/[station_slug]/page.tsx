@@ -5,10 +5,10 @@ import Header from "@/common/components/Header/Header";
 import Stations from "@/common/components/Stations/Stations";
 import DownloadAppBanner from "@/common/components/DownloadAppBanner/DownloadAppBanner";
 import FooterLinks from "@/common/components/FooterLinks/FooterLinks";
+import RadioPlayer from "@/common/components/RadioPlayer/RadioPlayer";
 import { seoStation } from "@/common/utils/seo";
 import { getStations } from "@/common/services/getStations";
 import { cleanStationsMetadata } from "@/common/utils";
-import StationContextProvider from "./StationContextProvider";
 import type { IStation, IStationExtended } from "@/common/models/Station";
 
 interface StationPageProps {
@@ -81,7 +81,7 @@ export async function generateMetadata({
 
 export default async function StationPage({ params }: StationPageProps) {
   const { station_slug } = await params;
-  const { stations } = await getStations();
+  const { stations, station_groups } = await getStations();
   // Add is_favorite property
   const stationsWithFavorite = stations.map((station: any) => ({
     ...station,
@@ -100,16 +100,13 @@ export default async function StationPage({ params }: StationPageProps) {
   // const cleanedStations = cleanStationsMetadata(stationsWithFavorite);
 
   return (
-    <StationContextProvider
-      stations={stationsWithFavorite}
-      selectedStation={selectedStation}
-      stationSlug={station_slug}
-    >
-      <Header />
-      <Stations />
+    <>
+      <Header selectedStation={selectedStation} />
+      <Stations stations={stationsWithFavorite} />
       <DownloadAppBanner />
       <FooterLinks />
-    </StationContextProvider>
+      <RadioPlayer station={selectedStation} stations={stationsWithFavorite} />
+    </>
   );
 }
 
