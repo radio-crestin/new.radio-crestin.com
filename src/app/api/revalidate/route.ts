@@ -4,7 +4,6 @@ import { revalidateTag, revalidatePath } from 'next/cache';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const secret = searchParams.get('secret');
     const path = searchParams.get('path');
     const tag = searchParams.get('tag');
 

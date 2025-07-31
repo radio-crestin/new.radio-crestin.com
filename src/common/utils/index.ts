@@ -19,7 +19,7 @@ export function cleanStationsMetadata(stations: IStationExtended[]) {
     }
 
     // Set total_listeners to 0
-    station.total_listeners = 0;
+    station.total_listeners = null;
 
     return station;
   });

@@ -1,6 +1,5 @@
 import React from "react";
 import { Metadata } from "next";
-import HeaderHomepage from "@/common/components/HeaderHomepage/HeaderHomepage";
 import Stations from "@/common/components/Stations/Stations";
 import DownloadAppBanner from "@/common/components/DownloadAppBanner/DownloadAppBanner";
 import FooterLinks from "@/common/components/FooterLinks/FooterLinks";
@@ -8,6 +7,7 @@ import { SEO_DEFAULT } from "@/common/utils/seo";
 import { getStations } from "@/common/services/getStations";
 import { cleanStationsMetadata } from "@/common/utils";
 import type { IStationExtended } from "@/common/models/Station";
+import HeaderHome from "@/common/components/HeaderHome/HeaderHome";
 
 export const metadata: Metadata = {
   title: SEO_DEFAULT.title,
@@ -28,7 +28,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <HeaderHomepage />
+      <HeaderHome />
       <Stations stations={stationsWithFavorite} />
       <DownloadAppBanner />
       <FooterLinks />

@@ -83,6 +83,14 @@
       .station_name {
         font-weight: 600;
         color: var(--text-color);
+        flex: 1;
+      }
+
+      .listeners_info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
       }
 
       .listeners_count {
@@ -91,6 +99,12 @@
         background: rgba(var(--primary-color-rgb), 0.1);
         padding: 4px 12px;
         border-radius: 20px;
+      }
+
+      .listeners_detail {
+        font-size: 0.85rem;
+        color: var(--text-secondary-color);
+        opacity: 0.8;
       }
     }
 
@@ -109,6 +123,14 @@
         color: var(--primary-color);
         margin-right: 8px;
       }
+
+      .total_detail {
+        font-size: 0.9rem;
+        font-weight: 400;
+        color: var(--text-secondary-color);
+        margin-top: 8px;
+        opacity: 0.8;
+      }
     }
 
     .info_text {
@@ -117,6 +139,56 @@
       font-size: 0.9rem;
       color: var(--text-secondary-color);
       opacity: 0.8;
+    }
+  }
+
+  // Mobile responsiveness
+  @media (max-width: 768px) {
+    .all_stations {
+      padding: 1.5rem;
+      margin: 30px auto 0;
+
+      .station_item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+
+        .station_name {
+          font-size: 1rem;
+        }
+
+        .listeners_info {
+          align-items: flex-start;
+          width: 100%;
+
+          .listeners_count {
+            font-size: 0.9rem;
+          }
+
+          .listeners_detail {
+            font-size: 0.8rem;
+          }
+        }
+      }
+
+      .total_listeners {
+        font-size: 1.1rem;
+        padding: 1.2rem;
+
+        .total_detail {
+          font-size: 0.85rem;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .all_stations {
+      padding: 1rem;
+
+      .station_item {
+        padding: 0.8rem;
+      }
     }
   }
 }

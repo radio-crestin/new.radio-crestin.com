@@ -32,127 +32,29 @@ const Navigation = () => (
   </nav>
 );
 
-interface ContentLeftProps {
-  selectedStation: IStationExtended | null;
-}
-
-const ContentLeft = ({ selectedStation }: ContentLeftProps) => {
-  if (!selectedStation) return null;
-
-  const defaultImage = "/images/radiocrestin_logo.png";
-  const stationImage = selectedStation?.thumbnail_url || defaultImage;
-  const songImage = selectedStation.now_playing?.song?.thumbnail_url;
-
-  return (
-    <div className={styles.left_content}>
-      <div className={styles.image_container}>
-        <div className={styles.container_img_plus_thumb}>
-          <img
-            loading={"lazy"}
-            src={songImage || stationImage}
-            alt={selectedStation.title || "Station"}
-            width={230}
-            height={230}
-            className={styles.main_image}
-          />
-          {songImage && (
-            <img
-              loading={"lazy"}
-              src={stationImage}
-              alt={selectedStation.title || "Station"}
-              className={styles.img_thumb}
-              width={55}
-              height={55}
-            />
-          )}
-        </div>
-      </div>
-      <div className={styles.station_info}>
-        <h2 className={styles.station_title}>
-          {selectedStation.now_playing?.song?.name || selectedStation.title || "\u00A0"}
-        </h2>
-        <p className={styles.station_artist}>
-          {selectedStation.now_playing?.song?.artist?.name || "\u00A0"}
-        </p>
-      </div>
-    </div>
-  );
-};
-
-interface ContentRightProps {
-  selectedStation: IStationExtended | null;
-}
-
-const ContentRight = ({ selectedStation }: ContentRightProps) => {
-  const defaultImage = "/images/radiocrestin_logo.png";
-  const stationImage = selectedStation?.thumbnail_url || defaultImage;
-  const stationTitle = selectedStation?.title || "Radio Creștin";
-  const stationDescription = selectedStation?.description || "\u00A0";
-  const totalListeners = selectedStation?.total_listeners || 0;
-
-  return (
-    <div className={styles.right_content}>
-      <div className={styles.station_details}>
-        <div className={styles.title_container}>
-          <img
-            src={stationImage}
-            alt={stationTitle}
-            height={100}
-            width={100}
-          />
-          <h1 className={styles.station_title}>{stationTitle}</h1>
-        </div>
-        <div className={styles.rating_wrapper}>
-          <Rating
-            score={getStationRating(selectedStation?.reviews || [])}
-            starHeight={22}
-          />
-          <span>({selectedStation?.reviews?.length || 0} recenzii)</span>
-        </div>
-        {totalListeners !== 0 ? (
-          <>
-            <p className={styles.nr_listeners_desktop}>
-              {totalListeners} persoane ascultă împreună
-              cu tine acest radio
-            </p>
-            <p className={styles.nr_listeners_mobile}>
-              {totalListeners} ascultători
-            </p>
-          </>
-        ) : (
-          <>
-            <p className={styles.nr_listeners_desktop}>\u00A0</p>
-            <p className={styles.nr_listeners_mobile}>\u00A0</p>
-          </>
-        )}
-        <p className={styles.station_description}>
-          {stationDescription}
-        </p>
-
-        <div className={styles.share_on_social}>
-          <ShareOnSocial station={selectedStation} />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface HeaderProps {
-  selectedStation?: IStationExtended | null;
-}
-
-const Header = ({ selectedStation = null }: HeaderProps) => {
+const HeaderHome = () => {
   return (
     <>
       <header className={styles.container}>
         <Navigation />
         <div className={styles.content_section}>
-          <ContentLeft selectedStation={selectedStation} />
-          <ContentRight selectedStation={selectedStation} />
+          <div className={styles.welcome_container}>
+            <div className={styles.station_details}>
+              <div className={styles.title_container}>
+                <h1 className={styles.station_title}>Bine ați venit</h1>
+              </div>
+              <p className={styles.station_description}>
+                &ldquo;Iubesc pe Domnul, căci El aude glasul meu, cererile mele. Da, El Și-a plecat urechea spre mine, de aceea-L voi chema toată viața mea.&rdquo;
+                <br />
+                <br />
+                <strong>- Psalmii 116:1-2</strong>
+              </p>
+            </div>
+          </div>
         </div>
       </header>
     </>
   );
 };
 
-export default Header;
+export default HeaderHome;
