@@ -8,6 +8,7 @@ import { Loading } from "@/icons/Loading";
 import { CONSTANTS } from "@/common/constants/constants";
 import styles from "./styles.module.scss";
 import usePlayer from "@/common/store/usePlayer";
+import useStation from "@/common/store/useStation";
 import { PLAYBACK_STATE } from "@/common/models/enum";
 import { toast } from "react-toastify";
 import Heart from "@/icons/Heart";
@@ -30,6 +31,7 @@ interface RadioPlayerProps {
 
 export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   const { playerVolume, setPlayerVolume } = usePlayer();
+  const { currentStation, setCurrentStation, setAllStations } = useStation();
   const [playbackState, setPlaybackState] = useState(PLAYBACK_STATE.STOPPED);
   const router = useRouter();
   const [retries, setRetries] = useState(MAX_MEDIA_RETRIES);
@@ -38,16 +40,27 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
 
+  // Initialize store with server data
+  useEffect(() => {
+    setAllStations(stations);
+    if (station && !currentStation) {
+      setCurrentStation(station);
+    }
+  }, [station, stations, currentStation, setCurrentStation, setAllStations]);
+
+  // Use currentStation from store, fallback to prop for initial render
+  const activeStation = currentStation || station;
+
   // Memoize critical station values to prevent unnecessary re-renders
-  const stationId = useMemo(() => station?.id, [station?.id]);
-  const stationSlug = useMemo(() => station?.slug, [station?.slug]);
-  const stationTitle = useMemo(() => station?.title, [station?.title]);
+  const stationId = useMemo(() => activeStation?.id, [activeStation?.id]);
+  const stationSlug = useMemo(() => activeStation?.slug, [activeStation?.slug]);
+  const stationTitle = useMemo(() => activeStation?.title, [activeStation?.title]);
   
   // Memoize station streams to prevent unnecessary player reloads
-  const stationStreams = useMemo(() => station?.station_streams || [], [station?.station_streams]);
+  const stationStreams = useMemo(() => activeStation?.station_streams || [], [activeStation?.station_streams]);
 
   useEffect(() => {
-    if (!station) return;
+    if (!activeStation) return;
 
     const preferredStreamOrder = [
       STREAM_TYPE.HLS,
@@ -62,12 +75,12 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
     );
 
     setStreamType(availableStreamType || null);
-  }, [stationStreams]);
+  }, [stationStreams, activeStation]);
 
   useEffect(() => {
-    if (!station) return;
-    setIsFavorite(favouriteItems.includes(station.slug));
-  }, [favouriteItems, station]);
+    if (!activeStation) return;
+    setIsFavorite(favouriteItems.includes(activeStation.slug));
+  }, [favouriteItems, activeStation]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -85,7 +98,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
 
   const retryMechanism = React.useCallback(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio || !station) return;
+    if (!audio || !activeStation) return;
 
     setRetries((prevRetries) => {
       if (prevRetries > 0) {
@@ -146,7 +159,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
         return 0;
       }
     });
-  }, [stationStreams, streamType, stationTitle]);
+  }, [stationStreams, streamType, stationTitle, activeStation]);
 
   const loadHLS = React.useCallback((
     hls_stream_url: string,
@@ -351,13 +364,13 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   }, [stations, stationId, router]);
 
   useEffect(() => {
-    if ("mediaSession" in navigator && station) {
+    if ("mediaSession" in navigator && activeStation) {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: station.now_playing?.song?.name || station.title,
-        artist: station.now_playing?.song?.artist?.name || "",
+        title: activeStation.now_playing?.song?.name || activeStation.title,
+        artist: activeStation.now_playing?.song?.artist?.name || "",
         artwork: [
           {
-            src: station.thumbnail_url || CONSTANTS.DEFAULT_COVER,
+            src: activeStation.thumbnail_url || CONSTANTS.DEFAULT_COVER,
             sizes: "512x512",
             type: "image/png",
           },
@@ -380,7 +393,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
         history.back();
       });
     }
-  }, [station, nextRandomStation]);
+  }, [activeStation, nextRandomStation]);
 
   useSpaceBarPress(() => {
     if (
@@ -419,7 +432,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
     }
   };
 
-  if (!station) {
+  if (!activeStation) {
     return null;
   }
 
@@ -430,16 +443,16 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
           <div className={styles.image_container}>
             <img
               src={
-                station.now_playing?.song?.thumbnail_url ||
-                station.thumbnail_url ||
+                activeStation.now_playing?.song?.thumbnail_url ||
+                activeStation.thumbnail_url ||
                 CONSTANTS.DEFAULT_COVER
               }
-              alt={`${station.title} | Radio Crestin`}
+              alt={`${activeStation.title} | Radio Crestin`}
               className={styles.station_thumbnail}
             />
             <div
               className={styles.heart_container}
-              onClick={() => toggleFavourite(station?.slug || "")}
+              onClick={() => toggleFavourite(activeStation?.slug || "")}
             >
               <Heart
                 color={isFavorite ? "red" : "white"}
@@ -449,13 +462,13 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
           </div>
 
           <div className={`${styles.station_info} ${styles.two_lines}`}>
-            <h2 className={styles.station_title}>{station.title}</h2>
+            <h2 className={styles.station_title}>{activeStation.title}</h2>
             <p className={styles.song_name}>
-              {station?.now_playing?.song?.name}
-              {station?.now_playing?.song?.artist?.name && (
+              {activeStation?.now_playing?.song?.name}
+              {activeStation?.now_playing?.song?.artist?.name && (
                 <span className={styles.artist_name}>
                   {" · "}
-                  {station?.now_playing?.song?.artist?.name}
+                  {activeStation?.now_playing?.song?.artist?.name}
                 </span>
               )}
             </p>

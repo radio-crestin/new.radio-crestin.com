@@ -7,15 +7,27 @@ import styles from "./styles.module.scss";
 import HeadphoneIcon from "@/icons/Headphone";
 import Heart from "@/icons/Heart";
 import useFavourite from "@/common/store/useFavourite";
+import useStation from "@/common/store/useStation";
 import { useEffect, useState } from "react";
 
 const StationItem = (data: IStation) => {
   const { favouriteItems, toggleFavourite } = useFavourite();
+  const { currentStation, allStations, setCurrentStation } = useStation();
   const [isStationFavourite, setIsStationFavourite] = useState(false);
-  const isActive = false; // Removed context dependency for static rendering
+  const isActive = currentStation?.slug === data.slug;
+  
   useEffect(() => {
     setIsStationFavourite(favouriteItems.includes(data.slug));
   }, [data.slug, favouriteItems]);
+
+  const handleStationClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const station = allStations.find(s => s.slug === data.slug);
+    if (station) {
+      setCurrentStation(station);
+      window.history.pushState({}, '', `/${data.slug}`);
+    }
+  };
 
   return (
     <Link
@@ -25,6 +37,7 @@ const StationItem = (data: IStation) => {
       href={data.slug}
       scroll={false}
       draggable={false}
+      onClick={handleStationClick}
     >
       <div className={styles.image_container}>
         {(data.now_playing?.song?.thumbnail_url || data?.thumbnail_url) && (
