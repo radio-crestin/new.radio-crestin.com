@@ -31,16 +31,20 @@ const FavouriteItem = (data: IStation) => {
   }, [data.slug, favouriteItems]);
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault(); // Prevent Next.js navigation
-    
-    const fullStation = stations.find(s => s.slug === data.slug);
-    if (fullStation && setSelectedStation) {
-      // Update the context immediately
-      setSelectedStation(fullStation);
+    // If we're in a provider context (station page), prevent navigation and update context
+    if (setSelectedStation) {
+      e.preventDefault(); // Prevent Next.js navigation
       
-      // Update URL without triggering navigation
-      window.history.pushState({}, '', `/${data.slug}`);
+      const fullStation = stations.find(s => s.slug === data.slug);
+      if (fullStation) {
+        // Update the context immediately
+        setSelectedStation(fullStation);
+        
+        // Update URL without triggering navigation
+        window.history.pushState({}, '', `/${data.slug}`);
+      }
     }
+    // Otherwise (home page), let Next.js handle the navigation normally
   };
 
   return (
