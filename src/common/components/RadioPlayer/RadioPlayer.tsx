@@ -451,15 +451,15 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
       <div className={styles.radio_player}>
         <div className={styles.player_container}>
           <div className={styles.image_container}>
-            <img
-              src={
-                activeStation.now_playing?.song?.thumbnail_url ||
-                activeStation.thumbnail_url ||
-                CONSTANTS.DEFAULT_COVER
-              }
-              alt={`${activeStation.title} | Radio Crestin`}
-              className={styles.station_thumbnail}
-            />
+            {(activeStation.now_playing?.song?.thumbnail_url || activeStation.thumbnail_url) ? (
+              <img
+                src={activeStation.now_playing?.song?.thumbnail_url || activeStation.thumbnail_url || ""}
+                alt={`${activeStation.title} | Radio Crestin`}
+                className={styles.station_thumbnail}
+              />
+            ) : (
+              <div className={styles.station_thumbnail_skeleton} />
+            )}
             <div
               className={styles.heart_container}
               onClick={() => toggleFavourite(activeStation?.slug || "")}
