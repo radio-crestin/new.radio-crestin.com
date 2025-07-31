@@ -39,7 +39,6 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   const { favouriteItems, toggleFavourite } = useFavourite();
   const [isFavorite, setIsFavorite] = useState(false);
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
-  const [isUsingSilentAudio, setIsUsingSilentAudio] = useState(false);
 
   // Initialize store with server data
   useEffect(() => {
@@ -202,11 +201,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
             )} - event: ${JSON.stringify(event, null, 2)}`,
           ),
         );
-        // Only retry if we're not intentionally stopped with silent audio
-        const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-        if (audio && !audio.src.startsWith("data:audio/mp3;base64,")) {
-          retryMechanism();
-        }
+        retryMechanism();
       }
     });
   }, [stationTitle, retryMechanism]);
@@ -252,37 +247,20 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
 
     switch (playbackState) {
       case PLAYBACK_STATE.STARTED:
-        // Reset silent audio flag and loop before reloading
-        setIsUsingSilentAudio(false);
-        audio.loop = false;
         resetAndReloadStream();
         break;
       case PLAYBACK_STATE.STOPPED:
         audio.pause();
-        // For HLS streams, load a silent audio to maintain media session state
-        if (streamType === STREAM_TYPE.HLS) {
-          // Create a data URL for a very short silent audio
-          // This is a 0.1 second silent MP3 encoded as base64
-          const silentAudioData = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjQ1LjEwMAAAAAAAAAAAAAAA//M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV//////////////////////////////////////////////////8AAAAATGF2YzU4Ljc2AAAAAAAAAAAAAAAAJAQKAAAAAAAAAbDyqK4gAAAAAAAAAAAAAAAAAAAAAP/zOMAAAAAGSAAAAABMQU1FMy45OSAyqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqg==";
-          audio.src = silentAudioData;
-          audio.loop = true; // Keep looping the silent audio
-          setIsUsingSilentAudio(true);
-          audio.load();
-          // Detach HLS but keep the instance for resuming
-          setHlsInstance((prevHls) => {
-            if (prevHls) {
-              prevHls.stopLoad();
-              prevHls.detachMedia();
-            }
-            return prevHls;
-          });
-        } else {
-          // For non-HLS streams, just pause normally
-          setIsUsingSilentAudio(false);
-        }
+        setHlsInstance((prevHls) => {
+          if (prevHls) {
+            prevHls.stopLoad();
+            prevHls.detachMedia();
+          }
+          return prevHls;
+        });
         break;
     }
-  }, [playbackState, resetAndReloadStream, streamType]);
+  }, [playbackState, resetAndReloadStream]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -297,9 +275,6 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
     if (!audio || !streamType || !currentStreamUrl) return;
-
-    // Don't run this effect when we're stopped or using silent audio
-    if (playbackState === PLAYBACK_STATE.STOPPED || isUsingSilentAudio) return;
 
     // Clean up previous HLS instance when stream URL changes
     setHlsInstance((prevHls) => {
@@ -359,7 +334,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
         return null;
       });
     };
-  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle, playbackState, isUsingSilentAudio]);
+  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle]);
 
   // Cleanup effect when component unmounts
   useEffect(() => {
@@ -558,22 +533,13 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
           onWaiting={() => {
             setPlaybackState(PLAYBACK_STATE.BUFFERING);
           }}
-          onEnded={() => {
-            // Prevent any action when silent audio ends (it's looping anyway)
-            if (!isUsingSilentAudio) {
-              // If needed, handle regular audio ending here
-            }
-          }}
           onError={(error) => {
-            // Don't retry when using silent audio
-            if (!isUsingSilentAudio) {
-              Bugsnag.notify(
-                new Error(
-                  `Audio error:414 - station.title: ${stationTitle}, error: ${error}`,
-                ),
-              );
-              retryMechanism();
-            }
+            Bugsnag.notify(
+              new Error(
+                `Audio error:414 - station.title: ${stationTitle}, error: ${error}`,
+              ),
+            );
+            retryMechanism();
           }}
         />
       </div>
