@@ -2,8 +2,8 @@ export async function graphqlFetch<T>(
   query: string,
   variables: Record<string, any> = {}
 ): Promise<T> {
-  const endpoint = process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "http://127.0.0.1:8080/graphql";
-  
+  const endpoint = process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "";
+
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -15,7 +15,7 @@ export async function graphqlFetch<T>(
       variables,
     }),
     next: {
-      revalidate: 30, // Cache for 30 seconds
+      revalidate: 0, // Cache for 30 seconds
     },
   });
 
@@ -24,7 +24,7 @@ export async function graphqlFetch<T>(
   }
 
   const json = await response.json();
-  
+
   if (json.errors) {
     throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
   }

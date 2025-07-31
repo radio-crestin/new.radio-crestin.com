@@ -36,7 +36,7 @@ const Stations = ({ initialStations }: StationsProps) => {
 
   // Sync favorite stations from the store
   useEffect(() => {
-    const favoriteStations = stations.filter((station) => 
+    const favoriteStations = stations.filter((station) =>
       favouriteItems.includes(station.slug)
     );
     setCtx({ favouriteStations: favoriteStations });
@@ -94,6 +94,7 @@ const Stations = ({ initialStations }: StationsProps) => {
 
     setFilteredStations(newFilteredStations);
   };
+
 
   const handleKeyPress = (event: any) => {
     if (event.key === "Enter") {
@@ -187,6 +188,7 @@ const Stations = ({ initialStations }: StationsProps) => {
         ) : (
           filteredStations.map((station: IStationExtended) => (
             <React.Fragment key={`${station.id}-${station.slug}`}>
+              {JSON.stringify({station})}
               <StationItem {...station} />
             </React.Fragment>
           ))

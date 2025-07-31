@@ -2,7 +2,9 @@ import React from "react";
 import Link from "next/link";
 import { Metadata } from "next";
 import { SEO_STATISTICI } from "@/common/utils/seo";
-import { getStationsData } from "../actions/stations";
+import { getStations } from "@/common/services/getStations";
+import { cleanStationsMetadata } from "@/common/utils";
+import type { IStationExtended } from "@/common/models/Station";
 import StatisticsClient from "./StatisticsClient";
 import styles from "./page.module.scss";
 
@@ -32,7 +34,17 @@ export const metadata: Metadata = {
 };
 
 export default async function StatisticiPage() {
-  const stations = await getStationsData();
+  const { stations } = await getStations();
+  
+  // Add is_favorite property and convert arrays
+  const stationsWithFavorite = stations.map((station: any) => ({
+    ...station,
+    is_favorite: false,
+    now_playing: station.now_playing ? [station.now_playing] : [],
+    uptime: station.uptime ? [station.uptime] : [],
+  })) as IStationExtended[];
+  
+  const cleanedStations = cleanStationsMetadata(stationsWithFavorite);
 
   return (
     <div className={styles.container}>
@@ -40,7 +52,7 @@ export default async function StatisticiPage() {
         <Link href={"/"} className={styles.back_link}>
           <span>←</span> Inapoi
         </Link>
-        <StatisticsClient stations={stations} />
+        <StatisticsClient stations={cleanedStations} />
         <p className={styles.info_text}>
           (radio-crestin.com / radiocrestin.ro / Radio Crestin mobile apps)
         </p>

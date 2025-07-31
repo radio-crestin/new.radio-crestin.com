@@ -6,10 +6,10 @@ import Stations from "@/common/components/Stations";
 import DownloadAppBanner from "@/common/components/DownloadAppBanner";
 import FooterLinks from "@/common/components/FooterLinks";
 import { seoStation } from "@/common/utils/seo";
-import { getStationBySlug, getStationsData } from "../actions/stations";
 import { getStations } from "@/common/services/getStations";
+import { cleanStationsMetadata } from "@/common/utils";
 import StationContextProvider from "./StationContextProvider";
-import type { IStation } from "@/common/models/Station";
+import type { IStation, IStationExtended } from "@/common/models/Station";
 
 interface StationPageProps {
   params: Promise<{
@@ -19,7 +19,7 @@ interface StationPageProps {
 
 export async function generateStaticParams() {
   const { stations } = await getStations();
-  
+
   return stations.map((station: IStation) => ({
     station_slug: station.slug,
   }));
@@ -29,14 +29,26 @@ export async function generateMetadata({
   params,
 }: StationPageProps): Promise<Metadata> {
   const { station_slug } = await params;
-  const data = await getStationBySlug(station_slug);
+  const { stations } = await getStations();
   
-  if (!data) {
+  // Add is_favorite property and convert arrays
+  const stationsWithFavorite = stations.map((station: any) => ({
+    ...station,
+    is_favorite: false,
+    now_playing: station.now_playing ? [station.now_playing] : [],
+    uptime: station.uptime ? [station.uptime] : [],
+  })) as IStationExtended[];
+  
+  const selectedStation = stationsWithFavorite.find(
+    (station) => station.slug === station_slug
+  );
+
+  if (!selectedStation) {
     return {};
   }
-  
-  const seo = seoStation(data.selectedStation);
-  
+
+  const seo = seoStation(selectedStation);
+
   return {
     title: seo.title,
     description: seo.description,
@@ -71,19 +83,34 @@ export async function generateMetadata({
 
 export default async function StationPage({ params }: StationPageProps) {
   const { station_slug } = await params;
-  const data = await getStationBySlug(station_slug);
+  const { stations } = await getStations();
   
-  if (!data) {
+  // Add is_favorite property and convert arrays
+  const stationsWithFavorite = stations.map((station: any) => ({
+    ...station,
+    is_favorite: false,
+    now_playing: station.now_playing ? [station.now_playing] : [],
+    uptime: station.uptime ? [station.uptime] : [],
+  })) as IStationExtended[];
+  
+  const selectedStation = stationsWithFavorite.find(
+    (station) => station.slug === station_slug
+  );
+
+  if (!selectedStation) {
     notFound();
   }
   
+  // Clean metadata for all stations
+  const cleanedStations = cleanStationsMetadata(stationsWithFavorite);
+
   return (
     <StationContextProvider
-      selectedStation={data.selectedStation}
+      selectedStation={selectedStation}
       stationSlug={station_slug}
     >
       <Header />
-      <Stations initialStations={data.stations} />
+      <Stations initialStations={cleanedStations} />
       <DownloadAppBanner />
       <FooterLinks />
     </StationContextProvider>
@@ -91,4 +118,4 @@ export default async function StationPage({ params }: StationPageProps) {
 }
 
 // Enable ISR with 30 seconds revalidation
-export const revalidate = 30;
+// export const revalidate = 30;
