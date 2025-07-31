@@ -46,6 +46,27 @@ export const SelectedStationProvider: React.FC<SelectedStationProviderProps> = (
     }
   }, [stations, selectedStation]);
 
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const pathname = window.location.pathname;
+      const stationSlug = pathname.slice(1); // Remove leading slash
+      
+      if (stationSlug && stations.length > 0) {
+        const station = stations.find(s => s.slug === stationSlug);
+        if (station) {
+          setSelectedStationState(station);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [stations]);
+
   const setSelectedStation = (station: IStationExtended) => {
     setSelectedStationState(station);
   };
