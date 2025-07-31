@@ -23,6 +23,7 @@ enum STREAM_TYPE {
 }
 
 const MAX_MEDIA_RETRIES = 20;
+const EMPTY_STATIONS_ARRAY: IStationExtended[] = [];
 
 interface RadioPlayerProps {
   initialStation: IStationExtended | null;
@@ -39,7 +40,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
 
   // Use useStationsRefresh to get updated station data for all stations
-  const { stations } = useStationsRefresh([]);
+  const { stations } = useStationsRefresh(EMPTY_STATIONS_ARRAY);
   
   // Find the current station from the refreshed stations list
   const activeStation = useMemo(() => {
