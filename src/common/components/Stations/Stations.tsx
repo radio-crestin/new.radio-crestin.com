@@ -9,7 +9,7 @@ import { Magnify } from "@/icons/Magnify";
 import CloseIcon from "@/icons/CloseIcon";
 import WhatsAppBibleGroup from "@/common/components/WhatsAppBibleGroup/WhatsAppBibleGroup";
 import useFavourite from "@/common/store/useFavourite";
-import { useStationsRefresh } from "./useStationsRefresh";
+import { useStationsData } from "@/common/hooks/useStationsData";
 
 interface StationsProps {
   stations: IStationExtended[];
@@ -17,7 +17,7 @@ interface StationsProps {
 
 const Stations = ({ stations: initialStations }: StationsProps) => {
   const { favouriteItems } = useFavourite();
-  const { stations } = useStationsRefresh(initialStations);
+  const { stations } = useStationsData(initialStations);
   const [filteredStations, setFilteredStations] = useState(stations);
   const [searchedValue, setSearchedValue] = useState("");
 
