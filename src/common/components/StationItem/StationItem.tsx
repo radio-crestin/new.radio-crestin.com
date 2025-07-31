@@ -15,7 +15,7 @@ const StationItem = (data: IStation) => {
   const { currentStation, allStations, setCurrentStation } = useStation();
   const [isStationFavourite, setIsStationFavourite] = useState(false);
   const isActive = currentStation?.slug === data.slug;
-  
+
   useEffect(() => {
     setIsStationFavourite(favouriteItems.includes(data.slug));
   }, [data.slug, favouriteItems]);
@@ -62,7 +62,7 @@ const StationItem = (data: IStation) => {
           )}
         </p>
       </div>
-      {data.total_listeners && data.total_listeners > 0 && (
+      {(data?.total_listeners || 0) > 0 && (
         <div className={styles.total_listeners}>
           {data?.total_listeners} <HeadphoneIcon />
         </div>

@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "serve": "npx serve@latest out",
     "lint": "next lint",
     "postbuild": "next-sitemap",
     "generate": "graphql-codegen --config codegen.ts"
