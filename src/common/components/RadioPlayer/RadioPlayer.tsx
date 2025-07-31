@@ -14,6 +14,7 @@ import Heart from "@/icons/Heart";
 import useFavourite from "@/common/store/useFavourite";
 import { Bugsnag } from "@/common/utils/bugsnag";
 import { IStationStreams, IStationExtended } from "@/common/models/Station";
+import { useStationsRefresh } from "@/common/components/Stations/useStationsRefresh";
 
 enum STREAM_TYPE {
   HLS = "HLS",
@@ -24,11 +25,10 @@ enum STREAM_TYPE {
 const MAX_MEDIA_RETRIES = 20;
 
 interface RadioPlayerProps {
-  station: IStationExtended | null;
-  stations: IStationExtended[];
+  initialStation: IStationExtended | null;
 }
 
-export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
+export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   const { playerVolume, setPlayerVolume } = usePlayer();
   const [playbackState, setPlaybackState] = useState(PLAYBACK_STATE.STOPPED);
   const router = useRouter();
@@ -38,7 +38,14 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
 
-  const activeStation = station;
+  // Use useStationsRefresh to get updated station data
+  const { stations } = useStationsRefresh(initialStation ? [initialStation] : []);
+  
+  // Find the current station from the refreshed stations list
+  const activeStation = useMemo(() => {
+    if (!initialStation) return null;
+    return stations.find(station => station.id === initialStation.id) || initialStation;
+  }, [stations, initialStation]);
 
   // Memoize critical station values to prevent unnecessary re-renders
   const stationId = useMemo(() => activeStation?.id, [activeStation?.id]);

@@ -105,7 +105,7 @@ export default async function StationPage({ params }: StationPageProps) {
       <Stations stations={stationsWithFavorite} />
       <DownloadAppBanner />
       <FooterLinks />
-      <RadioPlayer station={selectedStation} stations={stationsWithFavorite} />
+      <RadioPlayer initialStation={selectedStation} />
     </>
   );
 }
