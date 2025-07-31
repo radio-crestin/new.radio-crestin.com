@@ -54,7 +54,7 @@ const StationItem = (data: IStation) => {
       className={styles.station_item}
       data-station={"station-item"}
       data-active={isActive}
-      href={data.slug}
+      href={`/${data.slug}`}
       scroll={false}
       draggable={false}
       onClick={handleClick}

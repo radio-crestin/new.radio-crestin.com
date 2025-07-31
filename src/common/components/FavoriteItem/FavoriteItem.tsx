@@ -50,7 +50,7 @@ const FavouriteItem = (data: IStation) => {
   return (
     <Link
       className={styles.station_item}
-      href={data.slug}
+      href={`/${data.slug}`}
       scroll={false}
       data-active={isActive}
       draggable={false}
