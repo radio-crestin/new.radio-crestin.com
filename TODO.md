@@ -1,0 +1,3 @@
+- implementeaza design-ul pentru radio-crestin.com
+- implementeaza redirects
+- implementeaza grupuri de muzica
