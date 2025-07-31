@@ -182,6 +182,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     hls_stream_url: string,
     audio: HTMLAudioElement,
     hls: Hls,
+    shouldAutoPlay: boolean = true,
   ) => {
     if (Hls.isSupported()) {
       hls.loadSource(hls_stream_url);
@@ -190,22 +191,24 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       audio.src = hls_stream_url;
     }
 
-    hls.on(Hls.Events.AUDIO_TRACK_LOADING, function () {
-      setPlaybackState(PLAYBACK_STATE.BUFFERING);
-    });
+    if (shouldAutoPlay) {
+      hls.on(Hls.Events.AUDIO_TRACK_LOADING, function () {
+        setPlaybackState(PLAYBACK_STATE.BUFFERING);
+      });
 
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      setPlaybackState(PLAYBACK_STATE.BUFFERING);
-      audio.addEventListener(
-        "canplaythrough",
-        function () {
-          audio.play().catch(() => {
-            setPlaybackState(PLAYBACK_STATE.STOPPED);
-          });
-        },
-        { once: true },
-      );
-    });
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setPlaybackState(PLAYBACK_STATE.BUFFERING);
+        audio.addEventListener(
+          "canplaythrough",
+          function () {
+            audio.play().catch(() => {
+              setPlaybackState(PLAYBACK_STATE.STOPPED);
+            });
+          },
+          { once: true },
+        );
+      });
+    }
 
     hls.on(Hls.Events.ERROR, function (event, data) {
       if (data.fatal) {
@@ -243,7 +246,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     if (streamType === STREAM_TYPE.HLS) {
       const newHls = new Hls();
       setHlsInstance(newHls);
-      loadHLS(currentStreamUrl, audio, newHls);
+      loadHLS(currentStreamUrl, audio, newHls, true);
     } else {
       audio.src = currentStreamUrl;
       audio.load();
@@ -305,33 +308,29 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
     let hls: Hls | null = null;
 
+    // Only setup new stream - don't auto-play unless player is actively playing
+    const shouldAutoPlay = playbackState === PLAYBACK_STATE.PLAYING || playbackState === PLAYBACK_STATE.STARTED;
+
     switch (streamType) {
       case STREAM_TYPE.HLS:
         hls = new Hls();
         setHlsInstance(hls);
-        loadHLS(currentStreamUrl, audio, hls);
+        loadHLS(currentStreamUrl, audio, hls, shouldAutoPlay);
         break;
       case STREAM_TYPE.PROXY:
-        audio.src = currentStreamUrl;
-        audio.play().catch((error) => {
-          Bugsnag.notify(
-            new Error(
-              `Switching from HLS -> PROXY error:157 - station.title: ${stationTitle}, error: ${JSON.stringify(error, null, 2)}`,
-            ),
-          );
-          retryMechanism();
-        });
-        break;
       case STREAM_TYPE.ORIGINAL:
         audio.src = currentStreamUrl;
-        audio.play().catch((error) => {
-          Bugsnag.notify(
-            new Error(
-              `Switching from PROXY to ORIGINAL error:168 - station.title: ${stationTitle}, error: ${JSON.stringify(error, null, 2)}`,
-            ),
-          );
-          retryMechanism();
-        });
+        if (shouldAutoPlay) {
+          audio.play().catch((error) => {
+            Bugsnag.notify(
+              new Error(
+                `Stream loading error - station.title: ${stationTitle}, streamType: ${streamType}, error: ${JSON.stringify(error, null, 2)}`,
+              ),
+            );
+            retryMechanism();
+          });
+        }
+        break;
     }
 
     return () => {
@@ -351,7 +350,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
         return null;
       });
     };
-  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle]);
+  }, [streamType, currentStreamUrl, playbackState, loadHLS, retryMechanism, stationTitle]);
 
   // Cleanup effect when component unmounts
   useEffect(() => {
