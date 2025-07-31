@@ -18,7 +18,15 @@ interface StationsProps {
 
 const Stations = ({ stations: propStations }: StationsProps) => {
   const { favouriteItems } = useFavourite();
-  const { stations: contextStations } = useSelectedStation();
+  
+  // Try to use context, but handle the case where we're outside the provider
+  let contextStations: IStationExtended[] = [];
+  try {
+    const context = useSelectedStation();
+    contextStations = context.stations;
+  } catch (error) {
+    // We're outside the provider, which is fine for the home page
+  }
   
   // Use context stations if available, otherwise fall back to prop
   const stations = contextStations.length > 0 ? contextStations : propStations;

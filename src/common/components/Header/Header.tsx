@@ -146,7 +146,15 @@ interface HeaderProps {
 
 const Header = ({ selectedStation: propSelectedStation = null }: HeaderProps) => {
   const { currentStation } = useStation();
-  const { selectedStation: contextSelectedStation } = useSelectedStation();
+  
+  // Try to use context, but handle the case where we're outside the provider
+  let contextSelectedStation = null;
+  try {
+    const context = useSelectedStation();
+    contextSelectedStation = context.selectedStation;
+  } catch (error) {
+    // We're outside the provider, which is fine for the home page
+  }
   
   // Use context selectedStation if available, otherwise fall back to prop
   const activeStation = contextSelectedStation || currentStation || propSelectedStation;

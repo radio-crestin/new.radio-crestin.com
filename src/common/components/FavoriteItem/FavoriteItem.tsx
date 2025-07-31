@@ -11,7 +11,18 @@ import { useSelectedStation } from "@/common/providers/SelectedStationProvider";
 
 const FavouriteItem = (data: IStation) => {
   const { favouriteItems, toggleFavourite } = useFavourite();
-  const { setSelectedStation, stations } = useSelectedStation();
+  
+  // Try to use context, but handle the case where we're outside the provider
+  let setSelectedStation: ((station: IStationExtended) => void) | null = null;
+  let stations: IStationExtended[] = [];
+  try {
+    const context = useSelectedStation();
+    setSelectedStation = context.setSelectedStation;
+    stations = context.stations;
+  } catch (error) {
+    // We're outside the provider, which is fine for the home page
+  }
+  
   const [isStationFavourite, setIsStationFavourite] = useState(false);
   const isActive = false; // Removed store dependency for URL-based navigation
 
@@ -23,7 +34,7 @@ const FavouriteItem = (data: IStation) => {
     e.preventDefault(); // Prevent Next.js navigation
     
     const fullStation = stations.find(s => s.slug === data.slug);
-    if (fullStation) {
+    if (fullStation && setSelectedStation) {
       // Update the context immediately
       setSelectedStation(fullStation);
       
