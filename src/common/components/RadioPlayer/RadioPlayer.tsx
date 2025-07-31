@@ -38,8 +38,8 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
 
-  // Use useStationsRefresh to get updated station data
-  const { stations } = useStationsRefresh(initialStation ? [initialStation] : []);
+  // Use useStationsRefresh to get updated station data for all stations
+  const { stations } = useStationsRefresh([]);
   
   // Find the current station from the refreshed stations list
   const activeStation = useMemo(() => {
