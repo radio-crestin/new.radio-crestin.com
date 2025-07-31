@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React from "react";
+import React, { useMemo } from "react";
 
 import styles from "./styles.module.scss";
 import Rating from "@/common/components/Rating/Rating";
@@ -11,6 +11,7 @@ import ThemeToggle from "@/common/components/ThemeToggle/ThemeToggle";
 import WhatsAppButton from "@/common/components/WhatsAppButton/WhatsAppButton";
 import useStation from "@/common/store/useStation";
 import { IStationExtended } from "@/common/models/Station";
+import { useStationsData } from "@/common/hooks/useStationsData";
 
 const Navigation = () => (
   <nav className={styles.nav}>
@@ -145,8 +146,15 @@ interface HeaderProps {
 const Header = ({ selectedStation = null }: HeaderProps) => {
   const { currentStation } = useStation();
   
-  // Use currentStation from store, fallback to prop for initial render
-  const activeStation = currentStation || selectedStation;
+  // Use singleton stations data with automatic refresh
+  const { stations } = useStationsData();
+  
+  // Find the current station from the refreshed stations list
+  const activeStation = useMemo(() => {
+    const stationToUse = currentStation || selectedStation;
+    if (!stationToUse) return null;
+    return stations.find(station => station.id === stationToUse.id) || stationToUse;
+  }, [stations, currentStation, selectedStation]);
   
   return (
     <>
