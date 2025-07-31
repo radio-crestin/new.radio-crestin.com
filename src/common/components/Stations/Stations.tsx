@@ -26,13 +26,49 @@ const Stations = ({ initialStations }: StationsProps) => {
   const [filteredStations, setFilteredStations] = useState(stations);
   const [searchedValue, setSearchedValue] = useState("");
 
+
+  const handleSearch = () => {
+    let newFilteredStations = [];
+    // Filter by station title
+    newFilteredStations.push(
+        ...stations.filter((station: IStationExtended) =>
+            station.title.toLowerCase().includes(searchedValue),
+        ),
+    );
+
+    // Filter by song name
+    newFilteredStations.push(
+        ...stations.filter((station: IStationExtended) =>
+            station.now_playing?.song?.name.toLowerCase().includes(searchedValue),
+        ),
+    );
+
+    // Filter by artist name
+    newFilteredStations.push(
+        ...stations.filter((station: IStationExtended) =>
+            station.now_playing?.song?.artist?.name
+                .toLowerCase()
+                .includes(searchedValue),
+        ),
+    );
+
+    // Remove duplicates
+    newFilteredStations = newFilteredStations.filter(
+        (station, index, self) =>
+            index ===
+            self.findIndex((t) => t.id === station.id && t.slug === station.slug),
+    );
+
+    setFilteredStations(newFilteredStations);
+  };
+
   useEffect(() => {
     if (searchedValue) {
       handleSearch();
     } else {
       setFilteredStations(stations);
     }
-  }, [stations]);
+  }, [handleSearch, searchedValue, stations]);
 
   // Sync favorite stations from the store
   useEffect(() => {
@@ -59,41 +95,6 @@ const Stations = ({ initialStations }: StationsProps) => {
   useEffect(() => {
     handleSearch();
   }, [searchedValue]);
-
-  const handleSearch = () => {
-    let newFilteredStations = [];
-    // Filter by station title
-    newFilteredStations.push(
-      ...stations.filter((station: IStationExtended) =>
-        station.title.toLowerCase().includes(searchedValue),
-      ),
-    );
-
-    // Filter by song name
-    newFilteredStations.push(
-      ...stations.filter((station: IStationExtended) =>
-        station.now_playing?.[0]?.song?.name.toLowerCase().includes(searchedValue),
-      ),
-    );
-
-    // Filter by artist name
-    newFilteredStations.push(
-      ...stations.filter((station: IStationExtended) =>
-        station.now_playing?.[0]?.song?.artist?.name
-          .toLowerCase()
-          .includes(searchedValue),
-      ),
-    );
-
-    // Remove duplicates
-    newFilteredStations = newFilteredStations.filter(
-      (station, index, self) =>
-        index ===
-        self.findIndex((t) => t.id === station.id && t.slug === station.slug),
-    );
-
-    setFilteredStations(newFilteredStations);
-  };
 
 
   const handleKeyPress = (event: any) => {
@@ -188,7 +189,6 @@ const Stations = ({ initialStations }: StationsProps) => {
         ) : (
           filteredStations.map((station: IStationExtended) => (
             <React.Fragment key={`${station.id}-${station.slug}`}>
-              {JSON.stringify({station})}
               <StationItem {...station} />
             </React.Fragment>
           ))

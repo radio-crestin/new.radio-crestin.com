@@ -2,7 +2,7 @@
 
 import Head from "next/head";
 import React, { useContext } from "react";
-import AnalyticsScripts from "@/common/components/AnalyticsScripts";
+import AnalyticsScripts from "@/common/components/AnalyticsScripts/AnalyticsScripts";
 import { Context } from "@/common/context/ContextProvider";
 import { getStationRating } from "@/common/utils";
 

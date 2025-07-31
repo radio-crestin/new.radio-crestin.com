@@ -13,8 +13,10 @@ const ThemeToggle: React.FC = () => {
   }, []);
 
   const cycleTheme = () => {
-    const currentTheme = theme === "dark" ? "light" : "dark";
-    setTheme(currentTheme);
+    // If no theme is set (using system), get the resolved theme
+    const currentTheme = theme || resolvedTheme || "light";
+    const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
   };
 
   const themeNames: { [key: string]: string } = {
@@ -26,7 +28,8 @@ const ThemeToggle: React.FC = () => {
     return null;
   }
 
-  const currentTheme = theme || resolvedTheme || "light";
+  // Use resolvedTheme to get the actual theme (whether from system or explicitly set)
+  const currentTheme = resolvedTheme || "light";
 
   return (
     <button
