@@ -44,7 +44,7 @@ export const SelectedStationProvider: React.FC<SelectedStationProviderProps> = (
         setSelectedStationState(updatedStation);
       }
     }
-  }, [stations, selectedStation?.slug]);
+  }, [stations, selectedStation]);
 
   const setSelectedStation = (station: IStationExtended) => {
     setSelectedStationState(station);

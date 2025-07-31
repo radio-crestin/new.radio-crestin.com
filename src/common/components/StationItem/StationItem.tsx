@@ -21,10 +21,16 @@ const StationItem = (data: IStation) => {
   }, [data.slug, favouriteItems]);
 
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault(); // Prevent Next.js navigation
+    
     const fullStation = stations.find(s => s.slug === data.slug);
     if (fullStation) {
+      // Update the context immediately
       setSelectedStation(fullStation);
+      
+      // Update URL without triggering navigation
+      window.history.pushState({}, '', `/${data.slug}`);
     }
   };
 

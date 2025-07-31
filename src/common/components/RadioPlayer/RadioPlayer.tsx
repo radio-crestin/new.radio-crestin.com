@@ -282,21 +282,23 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
     if (!audio) return;
     audio.volume = playerVolume / 100;
+  }, [playerVolume]);
 
-    return () => {
-      setRetries(20);
-    };
-  }, [stationSlug, playerVolume]);
+  // Reset retries when station changes
+  useEffect(() => {
+    setRetries(MAX_MEDIA_RETRIES);
+  }, [stationSlug]);
 
-  // Track if stream URL actually changed to prevent unnecessary reloads
+  // Track loaded URL and station to prevent unnecessary reloads
   const [lastLoadedUrl, setLastLoadedUrl] = useState<string | null>(null);
+  const [lastLoadedStation, setLastLoadedStation] = useState<string | null>(null);
   
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
     if (!audio || !streamType || !currentStreamUrl) return;
 
-    // Skip if we're already loaded with this URL
-    if (lastLoadedUrl === currentStreamUrl) return;
+    // Skip if we're already loaded with this URL for the same station
+    if (lastLoadedUrl === currentStreamUrl && lastLoadedStation === stationSlug) return;
 
     // Clean up previous HLS instance when stream URL changes
     setHlsInstance((prevHls) => {
@@ -336,6 +338,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     }
 
     setLastLoadedUrl(currentStreamUrl);
+    setLastLoadedStation(stationSlug || null);
 
     return () => {
       // Clean up HLS instance on unmount or dependencies change
@@ -354,7 +357,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
         return null;
       });
     };
-  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle]);
+  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle, stationSlug, lastLoadedUrl, lastLoadedStation]);
 
   // Cleanup effect when component unmounts
   useEffect(() => {
