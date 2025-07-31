@@ -116,6 +116,39 @@
       border-radius: 1rem;
       background: var(--bg-skeleton, #f0f0f0);
     }
+
+    .img_thumb {
+      position: absolute;
+      border-radius: 50%;
+      bottom: 3px;
+      right: -15px;
+      width: 55px;
+      height: 55px;
+      box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+      object-fit: cover;
+      background: var(--bg-skeleton, #f0f0f0);
+    }
+  }
+
+  .station_info {
+    max-width: 230px;
+    min-height: 80px;
+
+    h2 {
+      color: var(--text-color);
+      font-family: globalVariables.$dm-sans-bold, serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      min-height: 30px;
+      line-height: 30px;
+    }
+
+    p {
+      color: var(--text-color);
+      min-height: 24px;
+      line-height: 24px;
+    }
   }
 
   .welcome_info {
@@ -215,6 +248,78 @@
         @include mixinHelper.onTablet {
           font-size: 14px;
         }
+      }
+    }
+
+    .rating_wrapper {
+      @include mixinHelper.center-content;
+      justify-content: flex-start;
+      flex-direction: row;
+      gap: 4px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+
+      @include mixinHelper.onTablet {
+        margin-bottom: 10px;
+        margin-top: 10px;
+        justify-content: center;
+        scale: 0.8;
+      }
+
+      span {
+        color: var(--text-color);
+        margin-top: 3px;
+      }
+    }
+
+    .nr_listeners_desktop {
+      font-size: 1rem;
+      font-weight: 400;
+      margin-bottom: 20px;
+      color: var(--text-color);
+      min-height: 24px;
+      line-height: 24px;
+
+      @include mixinHelper.onTablet {
+        display: none;
+      }
+    }
+
+    .nr_listeners_mobile {
+      display: none;
+      font-size: 0.8rem;
+      font-weight: 400;
+      margin-bottom: 20px;
+      text-align: center;
+      color: var(--text-color);
+      min-height: 20px;
+      line-height: 20px;
+
+      @include mixinHelper.onTablet {
+        display: block;
+      }
+    }
+
+    .station_description {
+      font-size: 0.9rem;
+      line-height: 25px;
+      font-weight: 400;
+      margin-bottom: 30px;
+      color: var(--text-color);
+      min-height: 125px;
+
+      display: -webkit-box;
+      -webkit-line-clamp: 5;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      @include mixinHelper.onTablet {
+        font-size: 0.9rem;
+        line-height: 20px;
+        height: 140px;
+        min-height: 140px;
+        -webkit-line-clamp: 7;
       }
     }
 
