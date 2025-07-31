@@ -42,12 +42,13 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   const stationId = useMemo(() => station?.id, [station?.id]);
   const stationSlug = useMemo(() => station?.slug, [station?.slug]);
   const stationTitle = useMemo(() => station?.title, [station?.title]);
-  const stationStreams = useMemo(() => JSON.stringify(station?.station_streams || []), [station?.station_streams]);
-  const currentlyPlaying = useMemo(() => JSON.stringify(station?.now_playing || []), [station?.now_playing]);
+  
+  // Memoize station streams to prevent unnecessary player reloads
+  const stationStreams = useMemo(() => station?.station_streams || [], [station?.station_streams]);
 
   useEffect(() => {
     if (!station) return;
-    
+
     const preferredStreamOrder = [
       STREAM_TYPE.HLS,
       STREAM_TYPE.PROXY,
@@ -55,13 +56,13 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
     ];
 
     const availableStreamType = preferredStreamOrder.find((type) =>
-      station.station_streams.some(
+      stationStreams.some(
         (stream: IStationStreams) => stream.type === type,
       ),
     );
 
     setStreamType(availableStreamType || null);
-  }, [station]);
+  }, [stationStreams]);
 
   useEffect(() => {
     if (!station) return;
@@ -75,12 +76,12 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
   }, [playerVolume]);
 
   const getStreamUrl = React.useCallback((type: STREAM_TYPE | null) => {
-    if (!type || !station) return null;
-    const stream = station.station_streams.find(
+    if (!type || !stationStreams.length) return null;
+    const stream = stationStreams.find(
       (stream: IStationStreams) => stream.type === type,
     );
     return stream?.stream_url || null;
-  }, [station]);
+  }, [stationStreams]);
 
   const retryMechanism = React.useCallback(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -88,9 +89,9 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
 
     setRetries((prevRetries) => {
       if (prevRetries > 0) {
-      const availableStreamTypes = station?.station_streams.map(
+      const availableStreamTypes = stationStreams.map(
         (s: IStationStreams) => s.type,
-      ) || [];
+      );
       const streamOrder = [
         STREAM_TYPE.HLS,
         STREAM_TYPE.PROXY,
@@ -145,7 +146,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
         return 0;
       }
     });
-  }, [station, streamType, stationTitle]);
+  }, [stationStreams, streamType, stationTitle]);
 
   const loadHLS = React.useCallback((
     hls_stream_url: string,
@@ -192,9 +193,14 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
     });
   }, [stationTitle, retryMechanism]);
 
+  // Memoize the current stream URL to detect actual stream changes
+  const currentStreamUrl = useMemo(() => {
+    return streamType ? getStreamUrl(streamType) : null;
+  }, [streamType, getStreamUrl]);
+
   const resetAndReloadStream = React.useCallback(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio || !streamType || !station) return;
+    if (!audio || !streamType || !currentStreamUrl) return;
 
     // Destroy existing HLS instance outside of the callback to avoid circular dependency
     setHlsInstance((prevHls) => {
@@ -204,18 +210,12 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
       return null;
     });
 
-    const streamUrl = getStreamUrl(streamType);
-    if (!streamUrl) {
-      retryMechanism();
-      return;
-    }
-
     if (streamType === STREAM_TYPE.HLS) {
       const newHls = new Hls();
       setHlsInstance(newHls);
-      loadHLS(streamUrl, audio, newHls);
+      loadHLS(currentStreamUrl, audio, newHls);
     } else {
-      audio.src = streamUrl;
+      audio.src = currentStreamUrl;
       audio.load();
       audio.play().catch((error) => {
         Bugsnag.notify(
@@ -226,7 +226,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
         retryMechanism();
       });
     }
-  }, [streamType, station, retryMechanism, getStreamUrl, loadHLS, stationTitle]);
+  }, [streamType, currentStreamUrl, retryMechanism, loadHLS, stationTitle]);
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
@@ -261,9 +261,9 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
 
   useEffect(() => {
     const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio || !streamType) return;
+    if (!audio || !streamType || !currentStreamUrl) return;
 
-    // Clean up previous HLS instance when station or stream type changes
+    // Clean up previous HLS instance when stream URL changes
     setHlsInstance((prevHls) => {
       if (prevHls) {
         prevHls.stopLoad();
@@ -273,22 +273,16 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
       return null;
     });
 
-    const streamUrl = getStreamUrl(streamType);
-    if (!streamUrl) {
-      retryMechanism();
-      return;
-    }
-
     let hls: Hls | null = null;
 
     switch (streamType) {
       case STREAM_TYPE.HLS:
         hls = new Hls();
         setHlsInstance(hls);
-        loadHLS(streamUrl, audio, hls);
+        loadHLS(currentStreamUrl, audio, hls);
         break;
       case STREAM_TYPE.PROXY:
-        audio.src = streamUrl;
+        audio.src = currentStreamUrl;
         audio.play().catch((error) => {
           Bugsnag.notify(
             new Error(
@@ -299,7 +293,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
         });
         break;
       case STREAM_TYPE.ORIGINAL:
-        audio.src = streamUrl;
+        audio.src = currentStreamUrl;
         audio.play().catch((error) => {
           Bugsnag.notify(
             new Error(
@@ -327,7 +321,7 @@ export default function RadioPlayer({ station, stations }: RadioPlayerProps) {
         return null;
       });
     };
-  }, [streamType, stationSlug, getStreamUrl, loadHLS, retryMechanism, stationTitle]);
+  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle]);
 
   // Cleanup effect when component unmounts
   useEffect(() => {
