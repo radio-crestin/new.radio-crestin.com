@@ -44,13 +44,15 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     const stream = sortedStreams[currentStreamIndex];
     if (!stream.stream_url) return null;
     
-    // Add session tracking
-    const uuid = localStorage.getItem('radio-crestin-session-uuid') || crypto.randomUUID();
-    localStorage.setItem('radio-crestin-session-uuid', uuid);
-    
+    // Add session tracking (only on client side)
     const url = new URL(stream.stream_url);
-    url.searchParams.set('ref', window.location.hostname);
-    url.searchParams.set('s', uuid);
+    
+    if (typeof window !== 'undefined') {
+      const uuid = localStorage.getItem('radio-crestin-session-uuid') || crypto.randomUUID();
+      localStorage.setItem('radio-crestin-session-uuid', uuid);
+      url.searchParams.set('ref', window.location.hostname);
+      url.searchParams.set('s', uuid);
+    }
     
     return url.toString();
   }, [sortedStreams, currentStreamIndex]);
