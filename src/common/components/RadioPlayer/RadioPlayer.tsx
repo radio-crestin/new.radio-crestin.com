@@ -85,8 +85,12 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
   // Reset stream index when station changes
   useEffect(() => {
-    console.log('[RadioPlayer] Station changed, resetting stream index to 0');
-    setCurrentStreamIndex(0);
+    if (activeStation?.id) {
+      console.log('[RadioPlayer] Station changed to:', activeStation.title, '- resetting stream index to 0');
+      setCurrentStreamIndex(0);
+      // Also clear loading state to ensure clean start
+      isLoadingRef.current = false;
+    }
   }, [activeStation?.id]);
 
   // Try next stream in the list
