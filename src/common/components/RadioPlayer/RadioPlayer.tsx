@@ -152,6 +152,15 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('[RadioPlayer] HLS manifest parsed, stream ready');
         isLoadingRef.current = false;
+        // If playback was started, play the new stream
+        if (playbackState === PLAYBACK_STATE.STARTED) {
+          audio.play().catch((error) => {
+            console.error('[RadioPlayer] HLS play error:', error);
+            if (error.name !== 'NotAllowedError') {
+              setPlaybackState(PLAYBACK_STATE.STOPPED);
+            }
+          });
+        }
       });
 
       hls.on(Hls.Events.ERROR, (_, data) => {
@@ -168,6 +177,20 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       // Direct stream playback
       audio.src = currentStreamUrl;
       isLoadingRef.current = false;
+      
+      // If playback was started, play the new stream
+      if (playbackState === PLAYBACK_STATE.STARTED) {
+        // Give the audio element time to load the new source
+        audio.load();
+        audio.play().then(() => {
+          console.log('[RadioPlayer] Direct stream playback started after fallback');
+        }).catch((error) => {
+          console.error('[RadioPlayer] Direct stream play error:', error);
+          if (error.name !== 'NotAllowedError') {
+            tryNextStream();
+          }
+        });
+      }
     }
 
     return () => {
@@ -179,39 +202,18 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStreamUrl, currentStreamIndex]);
+  }, [currentStreamUrl, currentStreamIndex, playbackState]);
 
-  // Handle play/pause separately - only depend on playbackState to avoid interruptions
+  // Handle pause only - play is handled in stream loading effect
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !currentStreamUrl) return;
+    if (!audio) return;
 
-    if (playbackState === PLAYBACK_STATE.STARTED) {
-      console.log('[RadioPlayer] Starting playback from play/pause effect');
-      // Wait for stream to be ready before playing
-      const playAudio = () => {
-        if (!isLoadingRef.current && audio.src) {
-          audio.play().then(() => {
-            console.log('[RadioPlayer] Playback started successfully');
-          }).catch((error) => {
-            console.error('[RadioPlayer] Play error in play/pause effect:', error);
-            // Don't stop on autoplay errors - wait for user interaction
-            if (error.name !== 'NotAllowedError') {
-              setPlaybackState(PLAYBACK_STATE.STOPPED);
-            }
-          });
-        } else if (isLoadingRef.current) {
-          // If still loading, wait and retry
-          console.log('[RadioPlayer] Stream still loading, waiting...');
-          setTimeout(playAudio, 100);
-        }
-      };
-      playAudio();
-    } else if (playbackState === PLAYBACK_STATE.STOPPED) {
-      console.log('[RadioPlayer] Stopping playback from play/pause effect');
+    if (playbackState === PLAYBACK_STATE.STOPPED) {
+      console.log('[RadioPlayer] Stopping playback');
       audio.pause();
     }
-  }, [playbackState, currentStreamUrl]);
+  }, [playbackState]);
 
   // Update media session
   useEffect(() => {
