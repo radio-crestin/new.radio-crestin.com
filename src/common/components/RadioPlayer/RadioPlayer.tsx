@@ -24,6 +24,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const hlsRef = useRef<Hls | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isLoadingRef = useRef(false);
 
   // Use context station or fall back to initial
   const { selectedStation: contextStation } = useSelectedStation();
@@ -103,7 +104,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       // All streams failed
       setPlaybackState(PLAYBACK_STATE.STOPPED);
     }
-  }, [currentStreamIndex, sortedStreams.length]);
+  }, [currentStreamIndex, sortedStreams.length, setPlaybackState]);
 
   // Handle stream loading and playback
   useEffect(() => {
@@ -112,12 +113,17 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       hasAudio: !!audio,
       currentStreamUrl,
       currentStreamIndex,
-      playbackState,
       isHLS,
-      totalStreams: sortedStreams.length
+      isLoading: isLoadingRef.current
     });
     
     if (!audio || !currentStreamUrl) return;
+
+    // Skip if we're already loading
+    if (isLoadingRef.current) {
+      console.log('[RadioPlayer] Already loading, skipping...');
+      return;
+    }
 
     // Clean up previous HLS instance
     if (hlsRef.current) {
@@ -126,12 +132,8 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       hlsRef.current = null;
     }
 
-    // Only load if we're playing or trying to start
-    if (playbackState === PLAYBACK_STATE.STOPPED) {
-      console.log('[RadioPlayer] Playback is stopped, pausing audio');
-      audio.pause();
-      return;
-    }
+    // Mark as loading
+    isLoadingRef.current = true;
 
     if (isHLS && Hls.isSupported()) {
       console.log('[RadioPlayer] Loading HLS stream:', currentStreamUrl);
@@ -144,8 +146,12 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('[RadioPlayer] HLS manifest parsed, attempting to play');
-        audio.play().catch((error) => {
+        audio.play().then(() => {
+          console.log('[RadioPlayer] HLS playback started successfully');
+          isLoadingRef.current = false;
+        }).catch((error) => {
           console.error('[RadioPlayer] HLS play error:', error);
+          isLoadingRef.current = false;
           setPlaybackState(PLAYBACK_STATE.STOPPED);
         });
       });
@@ -154,6 +160,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
         console.error('[RadioPlayer] HLS error:', data);
         if (data.fatal) {
           console.log('[RadioPlayer] Fatal HLS error, trying next stream');
+          isLoadingRef.current = false;
           // Try next stream
           tryNextStream();
         }
@@ -162,8 +169,12 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       console.log('[RadioPlayer] Loading direct stream:', currentStreamUrl);
       // Direct stream playback
       audio.src = currentStreamUrl;
-      audio.play().catch((error) => {
+      audio.play().then(() => {
+        console.log('[RadioPlayer] Direct stream playback started successfully');
+        isLoadingRef.current = false;
+      }).catch((error) => {
         console.error('[RadioPlayer] Direct stream play error:', error);
+        isLoadingRef.current = false;
         // Try next stream on error
         tryNextStream();
       });
@@ -171,12 +182,29 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
     return () => {
       console.log('[RadioPlayer] Cleanup function called');
+      isLoadingRef.current = false;
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [currentStreamUrl, isHLS, playbackState, sortedStreams.length, currentStreamIndex, tryNextStream]);
+  }, [currentStreamUrl, isHLS, currentStreamIndex, tryNextStream]);
+
+  // Handle play/pause separately
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (playbackState === PLAYBACK_STATE.STARTED && currentStreamUrl && !isLoadingRef.current) {
+      console.log('[RadioPlayer] Starting playback from play/pause effect');
+      audio.play().catch((error) => {
+        console.error('[RadioPlayer] Play error in play/pause effect:', error);
+      });
+    } else if (playbackState === PLAYBACK_STATE.STOPPED) {
+      console.log('[RadioPlayer] Stopping playback from play/pause effect');
+      audio.pause();
+    }
+  }, [playbackState, currentStreamUrl]);
 
   // Update media session
   useEffect(() => {
@@ -295,12 +323,16 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
         <audio
           ref={audioRef}
           onPlaying={() => {
-            console.log('[RadioPlayer] Audio onPlaying event');
-            setPlaybackState(PLAYBACK_STATE.PLAYING);
+            console.log('[RadioPlayer] Audio onPlaying event, isLoading:', isLoadingRef.current);
+            if (!isLoadingRef.current) {
+              setPlaybackState(PLAYBACK_STATE.PLAYING);
+            }
           }}
           onPlay={() => {
-            console.log('[RadioPlayer] Audio onPlay event');
-            setPlaybackState(PLAYBACK_STATE.PLAYING);
+            console.log('[RadioPlayer] Audio onPlay event, isLoading:', isLoadingRef.current);
+            if (!isLoadingRef.current) {
+              setPlaybackState(PLAYBACK_STATE.PLAYING);
+            }
           }}
           onPause={() => {
             console.log('[RadioPlayer] Audio onPause event');
@@ -320,7 +352,9 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
               readyState: audio.readyState,
               networkState: audio.networkState
             });
-            tryNextStream();
+            if (!isLoadingRef.current) {
+              tryNextStream();
+            }
           }}
         />
       </div>
