@@ -1,29 +1,16 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
 import Hls from "hls.js";
-import useSpaceBarPress from "@/common/hooks/useSpaceBarPress";
 import { Loading } from "@/icons/Loading";
 import { CONSTANTS } from "@/common/constants/constants";
 import styles from "./styles.module.scss";
 import usePlayer from "@/common/store/usePlayer";
 import { PLAYBACK_STATE } from "@/common/models/enum";
-import { toast } from "react-toastify";
 import Heart from "@/icons/Heart";
 import useFavourite from "@/common/store/useFavourite";
-import { Bugsnag } from "@/common/utils/bugsnag";
 import { IStationStreams, IStationExtended } from "@/common/models/Station";
-import { useStationsData } from "@/common/hooks/useStationsData";
 import { useSelectedStation } from "@/common/providers/SelectedStationProvider";
-
-enum STREAM_TYPE {
-  HLS = "HLS",
-  PROXY = "proxied_stream",
-  ORIGINAL = "direct_stream",
-}
-
-const MAX_MEDIA_RETRIES = 20;
 
 interface RadioPlayerProps {
   initialStation: IStationExtended | null;
@@ -32,501 +19,213 @@ interface RadioPlayerProps {
 export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   const { playerVolume, setPlayerVolume } = usePlayer();
   const [playbackState, setPlaybackState] = useState(PLAYBACK_STATE.STOPPED);
-  const router = useRouter();
-  const [retries, setRetries] = useState(MAX_MEDIA_RETRIES);
-  const [streamType, setStreamType] = useState<STREAM_TYPE | null>(null);
+  const [currentStreamIndex, setCurrentStreamIndex] = useState(0);
   const { favouriteItems, toggleFavourite } = useFavourite();
   const [isFavorite, setIsFavorite] = useState(false);
-  const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
-  
-  // Track the current playing stream type
-  const [currentPlayingStreamType, setCurrentPlayingStreamType] = useState<STREAM_TYPE | null>(null);
-  
-  // Track loaded URL and station to prevent unnecessary reloads
-  const [lastLoadedUrl, setLastLoadedUrl] = useState<string | null>(null);
-  const [lastLoadedStation, setLastLoadedStation] = useState<string | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Use context selectedStation if available, otherwise fall back to initialStation
-  const { selectedStation: contextStation, stations } = useSelectedStation();
+  // Use context station or fall back to initial
+  const { selectedStation: contextStation } = useSelectedStation();
   const activeStation = contextStation || initialStation;
 
-  // Memoize critical station values to prevent unnecessary re-renders
-  const stationId = useMemo(() => activeStation?.id, [activeStation?.id]);
-  const stationSlug = useMemo(() => activeStation?.slug, [activeStation?.slug]);
-  const stationTitle = useMemo(() => activeStation?.title, [activeStation?.title]);
-  
-  // Memoize station streams to prevent unnecessary player reloads
-  const stationStreams = useMemo(() => activeStation?.station_streams || [], [activeStation?.station_streams]);
-
-  useEffect(() => {
-    if (!activeStation) return;
-
-    // Skip this effect when station changes - let the station change effect handle it
-    if (stationSlug !== lastLoadedStation) return;
-
-    // If we have a current playing stream, check if it's still available
-    if (currentPlayingStreamType && playbackState === PLAYBACK_STATE.PLAYING) {
-      const streamStillAvailable = stationStreams.some(
-        (stream: IStationStreams) => stream.type === currentPlayingStreamType,
-      );
-      
-      if (streamStillAvailable) {
-        // Keep using the current stream
-        setStreamType(currentPlayingStreamType);
-        return;
-      }
-      // If current stream is no longer available, fall through to retry logic
-    }
-
-    // Sort streams by order field and get the first available one
-    const sortedStreams = [...stationStreams].sort((a, b) => 
+  // Get sorted streams by order
+  const sortedStreams = useMemo(() => {
+    if (!activeStation?.station_streams) return [];
+    return [...activeStation.station_streams].sort((a, b) => 
       (a.order || 999) - (b.order || 999)
     );
+  }, [activeStation?.station_streams]);
 
-    const firstAvailableStream = sortedStreams[0];
-    setStreamType(firstAvailableStream ? (firstAvailableStream.type as STREAM_TYPE) : null);
-  }, [stationStreams, activeStation, currentPlayingStreamType, playbackState, stationSlug, lastLoadedStation]);
+  // Current stream URL with session tracking
+  const currentStreamUrl = useMemo(() => {
+    if (!sortedStreams[currentStreamIndex]) return null;
+    
+    const stream = sortedStreams[currentStreamIndex];
+    if (!stream.stream_url) return null;
+    
+    // Add session tracking
+    const uuid = localStorage.getItem('radio-crestin-session-uuid') || crypto.randomUUID();
+    localStorage.setItem('radio-crestin-session-uuid', uuid);
+    
+    const url = new URL(stream.stream_url);
+    url.searchParams.set('ref', window.location.hostname);
+    url.searchParams.set('s', uuid);
+    
+    return url.toString();
+  }, [sortedStreams, currentStreamIndex]);
 
+  // Check if current stream is HLS
+  const isHLS = useMemo(() => {
+    return sortedStreams[currentStreamIndex]?.type === 'HLS';
+  }, [sortedStreams, currentStreamIndex]);
+
+  // Update favorite status
   useEffect(() => {
     if (!activeStation) return;
     setIsFavorite(favouriteItems.includes(activeStation.slug));
   }, [favouriteItems, activeStation]);
 
+  // Update volume
   useEffect(() => {
-    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio) return;
-    audio.volume = playerVolume / 100;
+    if (audioRef.current) {
+      audioRef.current.volume = playerVolume / 100;
+    }
   }, [playerVolume]);
 
-  const getOrCreateSessionUUID = React.useCallback(() => {
-    const storageKey = 'radio-crestin-session-uuid';
-    let uuid = localStorage.getItem(storageKey);
-    
-    if (!uuid) {
-      uuid = crypto.randomUUID();
-      localStorage.setItem(storageKey, uuid);
-    }
-    
-    return uuid;
-  }, []);
+  // Reset stream index when station changes
+  useEffect(() => {
+    setCurrentStreamIndex(0);
+  }, [activeStation?.id]);
 
-  const getStreamUrl = React.useCallback((type: STREAM_TYPE | null) => {
-    if (!type || !stationStreams.length) return null;
-    const stream = stationStreams.find(
-      (stream: IStationStreams) => stream.type === type,
-    );
-    
-    if (!stream?.stream_url) return null;
-    
-    const uuid = getOrCreateSessionUUID();
-    const currentDomain = window.location.hostname;
-    const url = new URL(stream.stream_url);
-    url.searchParams.set('ref', currentDomain);
-    url.searchParams.set('s', uuid);
-    
-    return url.toString();
-  }, [stationStreams, getOrCreateSessionUUID]);
-
-  const retryMechanism = React.useCallback(() => {
-    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio || !activeStation) return;
-
-    setRetries((prevRetries) => {
-      if (prevRetries > 0) {
-      // Sort streams by order to get the priority
-      const sortedStreams = [...stationStreams].sort((a, b) => 
-        (a.order || 999) - (b.order || 999)
-      );
-
-      // Find current stream index
-      const currentIndex = sortedStreams.findIndex(
-        (stream: IStationStreams) => stream.type === streamType
-      );
-
-      // Get next stream in order
-      const nextIndex = (currentIndex + 1) % sortedStreams.length;
-      const nextStream = sortedStreams[nextIndex];
-
-      if (nextStream) {
-        setStreamType(nextStream.type as STREAM_TYPE);
-        setCurrentPlayingStreamType(null); // Reset current playing stream on retry
-      }
-      
-      return prevRetries - 1;
-      } else {
-        Bugsnag.notify(
-          new Error(
-            `Hasn't been able to connect to the station - ${stationTitle}. Tried 20 times :P.`,
-          ),
-        );
-        // Defer toast to next tick to avoid updating during render
-        setTimeout(() => {
-          toast.error(
-            <div>
-              Nu s-a putut stabili o conexiune cu stația:{" "}
-              <strong style={{ fontWeight: "bold" }}>{stationTitle}</strong>
-              <br />
-              <br />
-              <span style={{ marginTop: 20 }}>
-                Vă rugăm să încercați mai târziu!
-              </span>
-            </div>,
-            {
-              position: "top-center",
-              autoClose: 9000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              progress: undefined,
-              theme: "light",
-            },
-          );
-        }, 0);
-        return 0;
-      }
-    });
-  }, [stationStreams, streamType, stationTitle, activeStation]);
-
-  const loadHLS = React.useCallback((
-    hls_stream_url: string,
-    audio: HTMLAudioElement,
-    hls: Hls,
-    shouldAutoPlay: boolean = true,
-  ) => {
-    if (Hls.isSupported()) {
-      hls.loadSource(hls_stream_url);
-      hls.attachMedia(audio);
-    } else if (audio.canPlayType("application/vnd.apple.mpegurl")) {
-      audio.src = hls_stream_url;
-    }
-
-    if (shouldAutoPlay) {
-      hls.on(Hls.Events.AUDIO_TRACK_LOADING, function () {
-        setPlaybackState(PLAYBACK_STATE.BUFFERING);
-      });
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setPlaybackState(PLAYBACK_STATE.BUFFERING);
-        audio.addEventListener(
-          "canplaythrough",
-          function () {
-            audio.play().catch(() => {
-              setPlaybackState(PLAYBACK_STATE.STOPPED);
-            });
-          },
-          { once: true },
-        );
-      });
-    }
-
-    hls.on(Hls.Events.ERROR, function (event, data) {
-      if (data.fatal) {
-        Bugsnag.notify(
-          new Error(
-            `HLS Fatal error - station.title: ${stationTitle}, error: ${JSON.stringify(
-              data,
-              null,
-              2,
-            )} - event: ${JSON.stringify(event, null, 2)}`,
-          ),
-        );
-        retryMechanism();
-      }
-    });
-  }, [stationTitle, retryMechanism]);
-
-  // Memoize the current stream URL to detect actual stream changes
-  const currentStreamUrl = useMemo(() => {
-    return streamType ? getStreamUrl(streamType) : null;
-  }, [streamType, getStreamUrl]);
-
-  const resetAndReloadStream = React.useCallback(() => {
-    // Don't reload if we're in the middle of changing stations
-    if (isChangingStationRef.current) return;
-    
-    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio || !streamType || !currentStreamUrl) return;
-
-    // Destroy existing HLS instance outside of the callback to avoid circular dependency
-    setHlsInstance((prevHls) => {
-      if (prevHls) {
-        prevHls.destroy();
-      }
-      return null;
-    });
-
-    if (streamType === STREAM_TYPE.HLS) {
-      const newHls = new Hls();
-      setHlsInstance(newHls);
-      loadHLS(currentStreamUrl, audio, newHls, true);
+  // Try next stream in the list
+  const tryNextStream = React.useCallback(() => {
+    if (currentStreamIndex < sortedStreams.length - 1) {
+      setCurrentStreamIndex(prev => prev + 1);
     } else {
-      audio.src = currentStreamUrl;
-      audio.load();
-      audio.play().catch((error) => {
-        Bugsnag.notify(
-          new Error(
-            `Error reloading stream - station.title: ${stationTitle}, error: ${JSON.stringify(error, null, 2)}`,
-          ),
-        );
-        retryMechanism();
-      });
+      // All streams failed
+      setPlaybackState(PLAYBACK_STATE.STOPPED);
     }
-  }, [streamType, currentStreamUrl, retryMechanism, loadHLS, stationTitle]);
+  }, [currentStreamIndex, sortedStreams.length]);
 
+  // Handle stream loading and playback
   useEffect(() => {
-    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio) return;
+    const audio = audioRef.current;
+    if (!audio || !currentStreamUrl) return;
 
-    switch (playbackState) {
-      case PLAYBACK_STATE.STARTED:
-        resetAndReloadStream();
-        break;
-      case PLAYBACK_STATE.STOPPED:
-        audio.pause();
-        setHlsInstance((prevHls) => {
-          if (prevHls) {
-            prevHls.stopLoad();
-            prevHls.detachMedia();
-          }
-          return prevHls;
-        });
-        break;
+    // Clean up previous HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
     }
-  }, [playbackState, resetAndReloadStream]);
 
-  useEffect(() => {
-    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio) return;
-    audio.volume = playerVolume / 100;
-  }, [playerVolume]);
-
-  // Reset retries and current playing stream when station changes
-  useEffect(() => {
-    setRetries(MAX_MEDIA_RETRIES);
-    // Clear current playing stream when switching to a different station
-    setCurrentPlayingStreamType(null);
-    
-    // Reset to first available stream based on order
-    if (stationStreams.length > 0) {
-      const sortedStreams = [...stationStreams].sort((a, b) => 
-        (a.order || 999) - (b.order || 999)
-      );
-      const firstStream = sortedStreams[0];
-      if (firstStream) {
-        setStreamType(firstStream.type as STREAM_TYPE);
-      }
-    }
-  }, [stationSlug, stationStreams]);
-
-  const isChangingStationRef = useRef(false);
-  
-  useEffect(() => {
-    const audio = document.getElementById("audioPlayer") as HTMLAudioElement;
-    if (!audio || !streamType || !currentStreamUrl) return;
-
-    // Skip if we're already loaded with this URL for the same station
-    if (lastLoadedUrl === currentStreamUrl && lastLoadedStation === stationSlug) return;
-    
-    // Skip if we're playing and the stream type hasn't changed
-    if (currentPlayingStreamType === streamType && 
-        !audio.paused && playbackState === PLAYBACK_STATE.PLAYING) {
+    // Only load if we're playing or trying to start
+    if (playbackState === PLAYBACK_STATE.STOPPED) {
+      audio.pause();
       return;
     }
 
-    // Mark that we're changing stations
-    isChangingStationRef.current = true;
+    if (isHLS && Hls.isSupported()) {
+      // Use HLS.js for HLS streams
+      const hls = new Hls();
+      hlsRef.current = hls;
+      
+      hls.loadSource(currentStreamUrl);
+      hls.attachMedia(audio);
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        audio.play().catch(() => {
+          setPlaybackState(PLAYBACK_STATE.STOPPED);
+        });
+      });
 
-    // Clean up previous HLS instance before creating a new one
-    setHlsInstance((prevHls) => {
-      if (prevHls && lastLoadedUrl !== currentStreamUrl) {
-        // Stop and destroy the previous instance
-        prevHls.stopLoad();
-        prevHls.detachMedia();
-        prevHls.destroy();
-        return null;
-      }
-      return prevHls;
-    });
-
-    // Check if audio is currently playing (not paused)
-    const isCurrentlyPlaying = !audio.paused;
-
-    switch (streamType) {
-      case STREAM_TYPE.HLS:
-        // Create new HLS instance
-        const newHls = new Hls();
-        setHlsInstance(newHls);
-        loadHLS(currentStreamUrl, audio, newHls, isCurrentlyPlaying);
-        break;
-      case STREAM_TYPE.PROXY:
-      case STREAM_TYPE.ORIGINAL:
-        audio.src = currentStreamUrl;
-        if (isCurrentlyPlaying) {
-          audio.play().catch((error) => {
-            Bugsnag.notify(
-              new Error(
-                `Stream loading error - station.title: ${stationTitle}, streamType: ${streamType}, error: ${JSON.stringify(error, null, 2)}`,
-              ),
-            );
-            retryMechanism();
-          });
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          // Try next stream
+          tryNextStream();
         }
-        break;
+      });
+    } else {
+      // Direct stream playback
+      audio.src = currentStreamUrl;
+      audio.play().catch(() => {
+        // Try next stream on error
+        tryNextStream();
+      });
     }
 
-    setLastLoadedUrl(currentStreamUrl);
-    setLastLoadedStation(stationSlug || null);
-    
-    // Mark that we're done changing stations after a short delay
-    setTimeout(() => {
-      isChangingStationRef.current = false;
-    }, 100);
-
     return () => {
-      // Only cleanup on unmount, not on every dependency change
-      // The cleanup for station changes is handled at the beginning of the effect
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
     };
-  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle, stationSlug, currentPlayingStreamType, playbackState, lastLoadedStation, lastLoadedUrl]);
+  }, [currentStreamUrl, isHLS, playbackState, sortedStreams.length, currentStreamIndex, tryNextStream]);
 
-  // Cleanup effect when component unmounts
-  useEffect(() => {
-    return () => {
-      setHlsInstance((prevHls) => {
-        if (prevHls) {
-          prevHls.stopLoad();
-          prevHls.detachMedia();
-          prevHls.destroy();
-        }
-        return null;
-      });
-    };
-  }, []);
-
-  const nextRandomStation = React.useCallback(() => {
-    const upStations = stations.filter(
-      (station: any) => station.uptime.is_up,
-    );
-
-    const currentIndex = upStations.findIndex((s: any) => s.id === stationId);
-
-    const nextIndex = currentIndex + 1;
-    const nextStation = upStations[nextIndex % upStations.length];
-
-    router.push(`/${nextStation.slug}`);
-  }, [stations, stationId, router]);
-
+  // Update media session
   useEffect(() => {
     if ("mediaSession" in navigator && activeStation) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: activeStation.now_playing?.song?.name || activeStation.title,
         artist: activeStation.now_playing?.song?.artist?.name || "",
-        artwork: [
-          {
-            src: activeStation.thumbnail_url || CONSTANTS.DEFAULT_COVER,
-            sizes: "512x512",
-            type: "image/png",
-          },
-        ],
-      });
-
-      navigator.mediaSession.setActionHandler("play", () => {
-        setPlaybackState(PLAYBACK_STATE.STARTED);
-      });
-
-      navigator.mediaSession.setActionHandler("pause", () => {
-        setPlaybackState(PLAYBACK_STATE.STOPPED);
-      });
-
-      navigator.mediaSession.setActionHandler("nexttrack", () => {
-        nextRandomStation();
-      });
-
-      navigator.mediaSession.setActionHandler("previoustrack", () => {
-        history.back();
+        artwork: [{
+          src: activeStation.thumbnail_url || CONSTANTS.DEFAULT_COVER,
+          sizes: "512x512",
+          type: "image/png",
+        }],
       });
     }
-  }, [activeStation, nextRandomStation]);
+  }, [activeStation]);
 
-  useSpaceBarPress(() => {
-    if (
-      playbackState === PLAYBACK_STATE.PLAYING ||
-      playbackState === PLAYBACK_STATE.STARTED
-    ) {
+  const togglePlayback = () => {
+    if (playbackState === PLAYBACK_STATE.PLAYING) {
       setPlaybackState(PLAYBACK_STATE.STOPPED);
-      return;
-    }
-
-    if (playbackState === PLAYBACK_STATE.STOPPED) {
+    } else {
       setPlaybackState(PLAYBACK_STATE.STARTED);
-    }
-  });
-
-  const renderPlayButtonSvg = () => {
-    switch (playbackState) {
-      case PLAYBACK_STATE.STARTED:
-        return <Loading />;
-      case PLAYBACK_STATE.BUFFERING:
-        return <Loading />;
-      case PLAYBACK_STATE.PLAYING:
-        return (
-          <path
-            fill="white"
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"
-          />
-        );
-      default:
-        return (
-          <path
-            fill="white"
-            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM9.5 16.5v-9l7 4.5-7 4.5z"
-          />
-        );
     }
   };
 
-  if (!activeStation) {
-    return null;
-  }
+  const renderPlayButton = () => {
+    if (playbackState === PLAYBACK_STATE.BUFFERING || 
+        playbackState === PLAYBACK_STATE.STARTED) {
+      return <Loading />;
+    }
+    
+    if (playbackState === PLAYBACK_STATE.PLAYING) {
+      return (
+        <path
+          fill="white"
+          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"
+        />
+      );
+    }
+    
+    return (
+      <path
+        fill="white"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM9.5 16.5v-9l7 4.5-7 4.5z"
+      />
+    );
+  };
+
+  if (!activeStation) return null;
 
   return (
     <div className={styles.radio_player_container}>
       <div className={styles.radio_player}>
         <div className={styles.player_container}>
+          {/* Album art with favorite button */}
           <div className={styles.image_container}>
-            {(activeStation.now_playing?.song?.thumbnail_url || activeStation.thumbnail_url) ? (
-              <img
-                src={activeStation.now_playing?.song?.thumbnail_url || activeStation.thumbnail_url || ""}
-                alt={`${activeStation.title} | Radio Crestin`}
-                className={styles.station_thumbnail}
-              />
-            ) : (
-              <div className={styles.station_thumbnail_skeleton} />
-            )}
+            <img
+              src={activeStation.now_playing?.song?.thumbnail_url || 
+                   activeStation.thumbnail_url || 
+                   CONSTANTS.DEFAULT_COVER}
+              alt={`${activeStation.title} | Radio Crestin`}
+              className={styles.station_thumbnail}
+            />
             <div
               className={styles.heart_container}
-              onClick={() => toggleFavourite(activeStation?.slug || "")}
+              onClick={() => toggleFavourite(activeStation.slug)}
             >
-              <Heart
-                color={isFavorite ? "red" : "white"}
-                defaultColor={"red"}
-              />
+              <Heart color={isFavorite ? "red" : "white"} defaultColor="red" />
             </div>
           </div>
 
+          {/* Station info and metadata */}
           <div className={`${styles.station_info} ${styles.two_lines}`}>
             <h2 className={styles.station_title}>{activeStation.title}</h2>
             <p className={styles.song_name}>
-              {activeStation?.now_playing?.song?.name}
-              {activeStation?.now_playing?.song?.artist?.name && (
+              {activeStation.now_playing?.song?.name}
+              {activeStation.now_playing?.song?.artist?.name && (
                 <span className={styles.artist_name}>
                   {" · "}
-                  {activeStation?.now_playing?.song?.artist?.name}
+                  {activeStation.now_playing?.song?.artist?.name}
                 </span>
               )}
             </p>
           </div>
 
+          {/* Volume control */}
           <div className={styles.volume_slider}>
             <input
               type="range"
@@ -539,65 +238,28 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
             />
           </div>
 
+          {/* Play/pause button */}
           <div className={styles.play_button_container}>
             <button
               aria-label="Play"
               className={styles.play_button}
-              onClick={() => {
-                if (
-                  playbackState === PLAYBACK_STATE.PLAYING ||
-                  playbackState === PLAYBACK_STATE.STARTED
-                ) {
-                  setPlaybackState(PLAYBACK_STATE.STOPPED);
-                  return;
-                }
-
-                if (playbackState === PLAYBACK_STATE.STOPPED) {
-                  setPlaybackState(PLAYBACK_STATE.STARTED);
-                }
-              }}
+              onClick={togglePlayback}
             >
-              <svg
-                width="50px"
-                height="50px"
-                focusable="false"
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-              >
-                {renderPlayButtonSvg()}
+              <svg width="50px" height="50px" viewBox="0 0 24 24">
+                {renderPlayButton()}
               </svg>
             </button>
           </div>
         </div>
 
+        {/* Audio element */}
         <audio
-          preload="true"
-          autoPlay
-          id="audioPlayer"
-          onPlaying={() => {
-            setPlaybackState(PLAYBACK_STATE.PLAYING);
-            // Track the current playing stream type
-            if (streamType) {
-              setCurrentPlayingStreamType(streamType);
-            }
-          }}
-          onPlay={() => {
-            setPlaybackState(PLAYBACK_STATE.PLAYING);
-          }}
-          onPause={() => {
-            setPlaybackState(PLAYBACK_STATE.STOPPED);
-          }}
-          onWaiting={() => {
-            setPlaybackState(PLAYBACK_STATE.BUFFERING);
-          }}
-          onError={(error) => {
-            Bugsnag.notify(
-              new Error(
-                `Audio error:414 - station.title: ${stationTitle}, error: ${error}`,
-              ),
-            );
-            retryMechanism();
-          }}
+          ref={audioRef}
+          onPlaying={() => setPlaybackState(PLAYBACK_STATE.PLAYING)}
+          onPlay={() => setPlaybackState(PLAYBACK_STATE.PLAYING)}
+          onPause={() => setPlaybackState(PLAYBACK_STATE.STOPPED)}
+          onWaiting={() => setPlaybackState(PLAYBACK_STATE.BUFFERING)}
+          onError={() => tryNextStream()}
         />
       </div>
     </div>
