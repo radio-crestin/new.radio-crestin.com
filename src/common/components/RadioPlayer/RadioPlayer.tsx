@@ -26,6 +26,8 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isLoadingRef = useRef(false);
   const shouldPlayRef = useRef(false);
+  const currentUrlRef = useRef<string | null>(null);
+  const retryCountRef = useRef(0);
 
   // Use context station or fall back to initial
   const { selectedStation: contextStation } = useSelectedStation();
@@ -88,10 +90,12 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     if (activeStation?.id) {
       console.log('[RadioPlayer] Station changed to:', activeStation.title, '- resetting stream index to 0');
       setCurrentStreamIndex(0);
-      // Also clear loading state to ensure clean start
+      // Also clear loading state and refs to ensure clean start
       isLoadingRef.current = false;
+      currentUrlRef.current = null;
+      retryCountRef.current = 0;
     }
-  }, [activeStation?.id]);
+  }, [activeStation?.id, activeStation?.title]);
 
   // Try next stream in the list
   const tryNextStream = React.useCallback(() => {
@@ -129,11 +133,14 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       return;
     }
 
-    // Skip if audio is already loaded with this URL
-    if (audio.src === currentStreamUrl) {
-      console.log('[RadioPlayer] Stream already loaded, skipping...');
+    // Skip if we've already loaded this exact URL
+    if (currentUrlRef.current === currentStreamUrl) {
+      console.log('[RadioPlayer] Stream already loaded with this URL, skipping...');
       return;
     }
+
+    // Update the current URL ref
+    currentUrlRef.current = currentStreamUrl;
 
     // Clean up previous HLS instance
     if (hlsRef.current) {
@@ -147,8 +154,34 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
     if (isHLS && Hls.isSupported()) {
       console.log('[RadioPlayer] Loading HLS stream:', currentStreamUrl);
-      // Use HLS.js for HLS streams
-      const hls = new Hls();
+      // Use HLS.js for HLS streams with optimized configuration
+      const hls = new Hls({
+        // Enable adaptive bitrate switching
+        enableWorker: true,
+        // Reduce fragment loading retries to prevent excessive requests
+        fragLoadingTimeOut: 10000,
+        fragLoadingMaxRetry: 3,
+        fragLoadingRetryDelay: 1000,
+        fragLoadingMaxRetryTimeout: 32000,
+        // Manifest loading configuration
+        manifestLoadingTimeOut: 10000,
+        manifestLoadingMaxRetry: 3,
+        manifestLoadingRetryDelay: 1000,
+        manifestLoadingMaxRetryTimeout: 32000,
+        // Level loading configuration
+        levelLoadingTimeOut: 10000,
+        levelLoadingMaxRetry: 3,
+        levelLoadingRetryDelay: 1000,
+        levelLoadingMaxRetryTimeout: 32000,
+        // Start from the live edge
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 10,
+        // Enable low latency mode if supported
+        lowLatencyMode: true,
+        // Skip problematic fragments instead of failing
+        testBandwidth: false,
+        debug: false
+      });
       hlsRef.current = hls;
 
       hls.loadSource(currentStreamUrl);
@@ -171,12 +204,72 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
         }
       });
 
+      // Handle fragment skip recovery
+      hls.on(Hls.Events.FRAG_PARSING_ERROR, (event, data) => {
+        console.log('[RadioPlayer] Fragment parsing error event, will skip fragment:', data.frag?.sn);
+        // HLS.js will automatically skip this fragment and continue
+        // Just ensure we maintain playback state
+        if (shouldPlayRef.current && audio.paused) {
+          setTimeout(() => {
+            audio.play().catch(e => console.log('[RadioPlayer] Resume after fragment skip failed:', e));
+          }, 100);
+        }
+      });
+
       hls.on(Hls.Events.ERROR, (_, data) => {
         console.error('[RadioPlayer] HLS error:', data);
-        if (data.fatal) {
-          console.log('[RadioPlayer] Fatal HLS error, trying next stream');
+        
+        // Handle fragment parsing errors specifically
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && 
+            data.details === Hls.ErrorDetails.FRAG_PARSING_ERROR) {
+          console.log('[RadioPlayer] Fragment parsing error detected, attempting recovery');
+          
+          // Don't mark as fatal, let HLS.js handle recovery
+          // The library will automatically skip the problematic fragment
+          // and continue with the next one from the refreshed manifest
+          return;
+        }
+        
+        // Handle other non-fatal errors
+        if (!data.fatal) {
+          console.log('[RadioPlayer] Non-fatal HLS error, continuing playback');
+          return;
+        }
+        
+        // Handle fatal errors
+        console.log('[RadioPlayer] Fatal HLS error detected');
+        
+        // For network errors on fragments, try to recover
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          console.log('[RadioPlayer] Network error, attempting recovery');
+          
+          switch (data.details) {
+            case Hls.ErrorDetails.MANIFEST_LOAD_ERROR:
+            case Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT:
+            case Hls.ErrorDetails.MANIFEST_PARSING_ERROR:
+              // Manifest errors are truly fatal, try next stream
+              console.log('[RadioPlayer] Manifest error, trying next stream');
+              isLoadingRef.current = false;
+              tryNextStream();
+              break;
+              
+            case Hls.ErrorDetails.FRAG_LOAD_ERROR:
+            case Hls.ErrorDetails.FRAG_LOAD_TIMEOUT:
+              // Fragment errors might be temporary
+              console.log('[RadioPlayer] Fragment load error, HLS.js will retry');
+              // Let HLS.js handle the retry with exponential backoff
+              break;
+              
+            default:
+              // For other network errors, try recovery first
+              console.log('[RadioPlayer] Attempting HLS recovery');
+              hls.startLoad();
+              break;
+          }
+        } else {
+          // For other fatal errors, try next stream
+          console.log('[RadioPlayer] Unrecoverable error, trying next stream');
           isLoadingRef.current = false;
-          // Try next stream
           tryNextStream();
         }
       });
@@ -204,7 +297,8 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     return () => {
       console.log('[RadioPlayer] Cleanup function called');
       isLoadingRef.current = false;
-      if (hlsRef.current) {
+      // Only clean up HLS if the URL has changed
+      if (currentUrlRef.current !== currentStreamUrl && hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
