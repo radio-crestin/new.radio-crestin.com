@@ -33,8 +33,8 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   // Get sorted streams by order
   const sortedStreams = useMemo(() => {
     if (!activeStation?.station_streams) return [];
-    const sorted = [...activeStation.station_streams].sort((a, b) => 
-      (a.order || 999) - (b.order || 999)
+    const sorted = [...activeStation.station_streams].sort((a, b) =>
+      (b.order || 999) - (a.order || 999)
     );
     console.log('[RadioPlayer] Sorted streams:', sorted.map(s => ({
       type: s.type,
@@ -47,20 +47,20 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   // Current stream URL with session tracking
   const currentStreamUrl = useMemo(() => {
     if (!sortedStreams[currentStreamIndex]) return null;
-    
+
     const stream = sortedStreams[currentStreamIndex];
     if (!stream.stream_url) return null;
-    
+
     // Add session tracking (only on client side)
     const url = new URL(stream.stream_url);
-    
+
     if (typeof window !== 'undefined') {
       const uuid = localStorage.getItem('radio-crestin-session-uuid') || crypto.randomUUID();
       localStorage.setItem('radio-crestin-session-uuid', uuid);
       url.searchParams.set('ref', window.location.hostname);
       url.searchParams.set('s', uuid);
     }
-    
+
     return url.toString();
   }, [sortedStreams, currentStreamIndex]);
 
@@ -95,7 +95,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       totalStreams: sortedStreams.length,
       hasMoreStreams: currentStreamIndex < sortedStreams.length - 1
     });
-    
+
     if (currentStreamIndex < sortedStreams.length - 1) {
       console.log('[RadioPlayer] Moving to next stream index:', currentStreamIndex + 1);
       setCurrentStreamIndex(prev => prev + 1);
@@ -106,7 +106,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     }
   }, [currentStreamIndex, sortedStreams.length, setPlaybackState]);
 
-  // Handle stream loading and playback - only when stream URL changes
+  // Handle stream loading - only when stream URL changes
   useEffect(() => {
     const audio = audioRef.current;
     console.log('[RadioPlayer] Stream loading effect triggered', {
@@ -115,7 +115,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       currentStreamIndex,
       isLoading: isLoadingRef.current
     });
-    
+
     if (!audio || !currentStreamUrl) return;
 
     // Skip if we're already loading
@@ -123,10 +123,10 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       console.log('[RadioPlayer] Already loading, skipping...');
       return;
     }
-    
-    // Skip if audio is already playing this URL
-    if (audio.src === currentStreamUrl && !audio.paused) {
-      console.log('[RadioPlayer] Already playing this stream, skipping...');
+
+    // Skip if audio is already loaded with this URL
+    if (audio.src === currentStreamUrl) {
+      console.log('[RadioPlayer] Stream already loaded, skipping...');
       return;
     }
 
@@ -145,28 +145,13 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       // Use HLS.js for HLS streams
       const hls = new Hls();
       hlsRef.current = hls;
-      
+
       hls.loadSource(currentStreamUrl);
       hls.attachMedia(audio);
-      
+
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('[RadioPlayer] HLS manifest parsed, attempting to play');
-        // Only auto-play if user started playback
-        if (playbackState === PLAYBACK_STATE.STARTED) {
-          audio.play().then(() => {
-            console.log('[RadioPlayer] HLS playback started successfully');
-            isLoadingRef.current = false;
-          }).catch((error) => {
-            console.error('[RadioPlayer] HLS play error:', error);
-            isLoadingRef.current = false;
-            // Don't stop on autoplay errors - wait for user interaction
-            if (error.name !== 'NotAllowedError') {
-              setPlaybackState(PLAYBACK_STATE.STOPPED);
-            }
-          });
-        } else {
-          isLoadingRef.current = false;
-        }
+        console.log('[RadioPlayer] HLS manifest parsed, stream ready');
+        isLoadingRef.current = false;
       });
 
       hls.on(Hls.Events.ERROR, (_, data) => {
@@ -182,22 +167,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       console.log('[RadioPlayer] Loading direct stream:', currentStreamUrl);
       // Direct stream playback
       audio.src = currentStreamUrl;
-      // Only auto-play if user started playback
-      if (playbackState === PLAYBACK_STATE.STARTED) {
-        audio.play().then(() => {
-          console.log('[RadioPlayer] Direct stream playback started successfully');
-          isLoadingRef.current = false;
-        }).catch((error) => {
-          console.error('[RadioPlayer] Direct stream play error:', error);
-          isLoadingRef.current = false;
-          // Don't try next stream on autoplay errors - wait for user interaction
-          if (error.name !== 'NotAllowedError') {
-            tryNextStream();
-          }
-        });
-      } else {
-        isLoadingRef.current = false;
-      }
+      isLoadingRef.current = false;
     }
 
     return () => {
@@ -209,30 +179,39 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStreamUrl, currentStreamIndex, playbackState]);
+  }, [currentStreamUrl, currentStreamIndex]);
 
   // Handle play/pause separately - only depend on playbackState to avoid interruptions
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !currentStreamUrl) return;
 
-    if (playbackState === PLAYBACK_STATE.STARTED && !isLoadingRef.current) {
+    if (playbackState === PLAYBACK_STATE.STARTED) {
       console.log('[RadioPlayer] Starting playback from play/pause effect');
-      // Only play if we have a src
-      if (audio.src) {
-        audio.play().catch((error) => {
-          console.error('[RadioPlayer] Play error in play/pause effect:', error);
-          // Show user-friendly message for autoplay errors
-          if (error.name === 'NotAllowedError') {
-            console.log('[RadioPlayer] Autoplay blocked - user needs to click play button');
-          }
-        });
-      }
+      // Wait for stream to be ready before playing
+      const playAudio = () => {
+        if (!isLoadingRef.current && audio.src) {
+          audio.play().then(() => {
+            console.log('[RadioPlayer] Playback started successfully');
+          }).catch((error) => {
+            console.error('[RadioPlayer] Play error in play/pause effect:', error);
+            // Don't stop on autoplay errors - wait for user interaction
+            if (error.name !== 'NotAllowedError') {
+              setPlaybackState(PLAYBACK_STATE.STOPPED);
+            }
+          });
+        } else if (isLoadingRef.current) {
+          // If still loading, wait and retry
+          console.log('[RadioPlayer] Stream still loading, waiting...');
+          setTimeout(playAudio, 100);
+        }
+      };
+      playAudio();
     } else if (playbackState === PLAYBACK_STATE.STOPPED) {
       console.log('[RadioPlayer] Stopping playback from play/pause effect');
       audio.pause();
     }
-  }, [playbackState]);
+  }, [playbackState, currentStreamUrl]);
 
   // Update media session
   useEffect(() => {
@@ -261,11 +240,11 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   };
 
   const renderPlayButton = () => {
-    if (playbackState === PLAYBACK_STATE.BUFFERING || 
+    if (playbackState === PLAYBACK_STATE.BUFFERING ||
         playbackState === PLAYBACK_STATE.STARTED) {
       return <Loading />;
     }
-    
+
     if (playbackState === PLAYBACK_STATE.PLAYING) {
       return (
         <path
@@ -274,7 +253,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
         />
       );
     }
-    
+
     return (
       <path
         fill="white"
@@ -292,8 +271,8 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
           {/* Album art with favorite button */}
           <div className={styles.image_container}>
             <img
-              src={activeStation.now_playing?.song?.thumbnail_url || 
-                   activeStation.thumbnail_url || 
+              src={activeStation.now_playing?.song?.thumbnail_url ||
+                   activeStation.thumbnail_url ||
                    CONSTANTS.DEFAULT_COVER}
               alt={`${activeStation.title} | Radio Crestin`}
               className={styles.station_thumbnail}
