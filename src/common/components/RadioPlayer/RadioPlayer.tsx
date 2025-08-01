@@ -38,6 +38,9 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   const { favouriteItems, toggleFavourite } = useFavourite();
   const [isFavorite, setIsFavorite] = useState(false);
   const [hlsInstance, setHlsInstance] = useState<Hls | null>(null);
+  
+  // Track the current playing stream type
+  const [currentPlayingStreamType, setCurrentPlayingStreamType] = useState<STREAM_TYPE | null>(null);
 
   // Use context selectedStation if available, otherwise fall back to initialStation
   const { selectedStation: contextStation, stations } = useSelectedStation();
@@ -54,6 +57,21 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   useEffect(() => {
     if (!activeStation) return;
 
+    // If we have a current playing stream, check if it's still available
+    if (currentPlayingStreamType && playbackState === PLAYBACK_STATE.PLAYING) {
+      const streamStillAvailable = stationStreams.some(
+        (stream: IStationStreams) => stream.type === currentPlayingStreamType,
+      );
+      
+      if (streamStillAvailable) {
+        // Keep using the current stream
+        setStreamType(currentPlayingStreamType);
+        return;
+      }
+      // If current stream is no longer available, fall through to retry logic
+    }
+
+    // Use the preferred order if no current stream or it's not available
     const preferredStreamOrder = [
       STREAM_TYPE.HLS,
       STREAM_TYPE.PROXY,
@@ -67,7 +85,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     );
 
     setStreamType(availableStreamType || null);
-  }, [stationStreams, activeStation]);
+  }, [stationStreams, activeStation, currentPlayingStreamType, playbackState]);
 
   useEffect(() => {
     if (!activeStation) return;
@@ -131,12 +149,14 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
         nextIndex = (nextIndex + 1) % streamOrder.length;
         if (availableStreamTypes.includes(streamOrder[nextIndex])) {
           setStreamType(streamOrder[nextIndex]);
+          setCurrentPlayingStreamType(null); // Reset current playing stream on retry
           break;
         }
       } while (nextIndex !== currentIndex);
 
         if (nextIndex === currentIndex) {
           setStreamType(streamOrder[nextIndex]);
+          setCurrentPlayingStreamType(null); // Reset current playing stream on retry
         }
         return prevRetries - 1;
       } else {
@@ -287,9 +307,11 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     audio.volume = playerVolume / 100;
   }, [playerVolume]);
 
-  // Reset retries when station changes
+  // Reset retries and current playing stream when station changes
   useEffect(() => {
     setRetries(MAX_MEDIA_RETRIES);
+    // Clear current playing stream when switching to a different station
+    setCurrentPlayingStreamType(null);
   }, [stationSlug]);
 
   // Track loaded URL and station to prevent unnecessary reloads
@@ -303,6 +325,12 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
     // Skip if we're already loaded with this URL for the same station
     if (lastLoadedUrl === currentStreamUrl && lastLoadedStation === stationSlug) return;
+    
+    // Skip if we're playing and the stream type hasn't changed
+    if (currentPlayingStreamType === streamType && 
+        !audio.paused && playbackState === PLAYBACK_STATE.PLAYING) {
+      return;
+    }
 
     // Mark that we're changing stations
     isChangingStationRef.current = true;
@@ -357,7 +385,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       // Only cleanup on unmount, not on every dependency change
       // The cleanup for station changes is handled at the beginning of the effect
     };
-  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle, stationSlug]);
+  }, [streamType, currentStreamUrl, loadHLS, retryMechanism, stationTitle, stationSlug, currentPlayingStreamType, playbackState, lastLoadedStation, lastLoadedUrl]);
 
   // Cleanup effect when component unmounts
   useEffect(() => {
@@ -546,6 +574,10 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
           id="audioPlayer"
           onPlaying={() => {
             setPlaybackState(PLAYBACK_STATE.PLAYING);
+            // Track the current playing stream type
+            if (streamType) {
+              setCurrentPlayingStreamType(streamType);
+            }
           }}
           onPlay={() => {
             setPlaybackState(PLAYBACK_STATE.PLAYING);

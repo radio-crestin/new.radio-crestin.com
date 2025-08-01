@@ -1,3 +1,3 @@
-- implementeaza design-ul pentru radio-crestin.com
-- implementeaza redirects
-- implementeaza grupuri de muzica
+- implementeaza link de share cu analytics cu numarul de oameni invitati
+- implementeaza review-uri
+- implementeaza pagini pentru fiecare categorie

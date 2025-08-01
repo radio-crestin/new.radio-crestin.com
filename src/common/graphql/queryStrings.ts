@@ -20,6 +20,7 @@ export const GET_STATIONS_QUERY_STRING = `
     station_streams {
       type
       stream_url
+      order
     }
     posts(limit: 1, order_by: {published: desc}) {
       id
