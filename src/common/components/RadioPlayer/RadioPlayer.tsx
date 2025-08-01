@@ -71,20 +71,13 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       // If current stream is no longer available, fall through to retry logic
     }
 
-    // Use the preferred order if no current stream or it's not available
-    const preferredStreamOrder = [
-      STREAM_TYPE.HLS,
-      STREAM_TYPE.PROXY,
-      STREAM_TYPE.ORIGINAL,
-    ];
-
-    const availableStreamType = preferredStreamOrder.find((type) =>
-      stationStreams.some(
-        (stream: IStationStreams) => stream.type === type,
-      ),
+    // Sort streams by order field and get the first available one
+    const sortedStreams = [...stationStreams].sort((a, b) => 
+      (a.order || 999) - (b.order || 999)
     );
 
-    setStreamType(availableStreamType || null);
+    const firstAvailableStream = sortedStreams[0];
+    setStreamType(firstAvailableStream ? (firstAvailableStream.type as STREAM_TYPE) : null);
   }, [stationStreams, activeStation, currentPlayingStreamType, playbackState]);
 
   useEffect(() => {
@@ -133,32 +126,26 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
     setRetries((prevRetries) => {
       if (prevRetries > 0) {
-      const availableStreamTypes = stationStreams.map(
-        (s: IStationStreams) => s.type,
+      // Sort streams by order to get the priority
+      const sortedStreams = [...stationStreams].sort((a, b) => 
+        (a.order || 999) - (b.order || 999)
       );
-      const streamOrder = [
-        STREAM_TYPE.HLS,
-        STREAM_TYPE.PROXY,
-        STREAM_TYPE.ORIGINAL,
-      ];
 
-      const currentIndex = streamType ? streamOrder.indexOf(streamType) : -1;
-      let nextIndex = currentIndex;
+      // Find current stream index
+      const currentIndex = sortedStreams.findIndex(
+        (stream: IStationStreams) => stream.type === streamType
+      );
 
-      do {
-        nextIndex = (nextIndex + 1) % streamOrder.length;
-        if (availableStreamTypes.includes(streamOrder[nextIndex])) {
-          setStreamType(streamOrder[nextIndex]);
-          setCurrentPlayingStreamType(null); // Reset current playing stream on retry
-          break;
-        }
-      } while (nextIndex !== currentIndex);
+      // Get next stream in order
+      const nextIndex = (currentIndex + 1) % sortedStreams.length;
+      const nextStream = sortedStreams[nextIndex];
 
-        if (nextIndex === currentIndex) {
-          setStreamType(streamOrder[nextIndex]);
-          setCurrentPlayingStreamType(null); // Reset current playing stream on retry
-        }
-        return prevRetries - 1;
+      if (nextStream) {
+        setStreamType(nextStream.type as STREAM_TYPE);
+        setCurrentPlayingStreamType(null); // Reset current playing stream on retry
+      }
+      
+      return prevRetries - 1;
       } else {
         Bugsnag.notify(
           new Error(
@@ -403,7 +390,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
   const nextRandomStation = React.useCallback(() => {
     const upStations = stations.filter(
-      (station: any) => station.uptime.is_up === true,
+      (station: any) => station.uptime.is_up,
     );
 
     const currentIndex = upStations.findIndex((s: any) => s.id === stationId);
