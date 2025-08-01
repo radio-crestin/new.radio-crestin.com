@@ -41,6 +41,10 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   
   // Track the current playing stream type
   const [currentPlayingStreamType, setCurrentPlayingStreamType] = useState<STREAM_TYPE | null>(null);
+  
+  // Track loaded URL and station to prevent unnecessary reloads
+  const [lastLoadedUrl, setLastLoadedUrl] = useState<string | null>(null);
+  const [lastLoadedStation, setLastLoadedStation] = useState<string | null>(null);
 
   // Use context selectedStation if available, otherwise fall back to initialStation
   const { selectedStation: contextStation, stations } = useSelectedStation();
@@ -56,6 +60,9 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
   useEffect(() => {
     if (!activeStation) return;
+
+    // Skip this effect when station changes - let the station change effect handle it
+    if (stationSlug !== lastLoadedStation) return;
 
     // If we have a current playing stream, check if it's still available
     if (currentPlayingStreamType && playbackState === PLAYBACK_STATE.PLAYING) {
@@ -78,7 +85,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
 
     const firstAvailableStream = sortedStreams[0];
     setStreamType(firstAvailableStream ? (firstAvailableStream.type as STREAM_TYPE) : null);
-  }, [stationStreams, activeStation, currentPlayingStreamType, playbackState]);
+  }, [stationStreams, activeStation, currentPlayingStreamType, playbackState, stationSlug, lastLoadedStation]);
 
   useEffect(() => {
     if (!activeStation) return;
@@ -299,11 +306,19 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
     setRetries(MAX_MEDIA_RETRIES);
     // Clear current playing stream when switching to a different station
     setCurrentPlayingStreamType(null);
-  }, [stationSlug]);
+    
+    // Reset to first available stream based on order
+    if (stationStreams.length > 0) {
+      const sortedStreams = [...stationStreams].sort((a, b) => 
+        (a.order || 999) - (b.order || 999)
+      );
+      const firstStream = sortedStreams[0];
+      if (firstStream) {
+        setStreamType(firstStream.type as STREAM_TYPE);
+      }
+    }
+  }, [stationSlug, stationStreams]);
 
-  // Track loaded URL and station to prevent unnecessary reloads
-  const [lastLoadedUrl, setLastLoadedUrl] = useState<string | null>(null);
-  const [lastLoadedStation, setLastLoadedStation] = useState<string | null>(null);
   const isChangingStationRef = useRef(false);
   
   useEffect(() => {
