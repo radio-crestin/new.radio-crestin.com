@@ -25,6 +25,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
   const hlsRef = useRef<Hls | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isLoadingRef = useRef(false);
+  const shouldPlayRef = useRef(false);
 
   // Use context station or fall back to initial
   const { selectedStation: contextStation } = useSelectedStation();
@@ -152,11 +153,14 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('[RadioPlayer] HLS manifest parsed, stream ready');
         isLoadingRef.current = false;
-        // If playback was started, play the new stream
-        if (playbackState === PLAYBACK_STATE.STARTED) {
-          audio.play().catch((error) => {
+        // If playback should be started, play the new stream
+        if (shouldPlayRef.current) {
+          audio.play().then(() => {
+            console.log('[RadioPlayer] HLS playback started successfully');
+          }).catch((error) => {
             console.error('[RadioPlayer] HLS play error:', error);
             if (error.name !== 'NotAllowedError') {
+              shouldPlayRef.current = false;
               setPlaybackState(PLAYBACK_STATE.STOPPED);
             }
           });
@@ -178,8 +182,8 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       audio.src = currentStreamUrl;
       isLoadingRef.current = false;
       
-      // If playback was started, play the new stream
-      if (playbackState === PLAYBACK_STATE.STARTED) {
+      // If playback should be started, play the new stream
+      if (shouldPlayRef.current) {
         // Give the audio element time to load the new source
         audio.load();
         audio.play().then(() => {
@@ -202,15 +206,31 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStreamUrl, currentStreamIndex, playbackState]);
+  }, [currentStreamUrl, currentStreamIndex]);
 
-  // Handle pause only - play is handled in stream loading effect
+  // Handle play/pause based on playback state
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (playbackState === PLAYBACK_STATE.STOPPED) {
+    if (playbackState === PLAYBACK_STATE.STARTED) {
+      console.log('[RadioPlayer] Playback started, setting shouldPlay to true');
+      shouldPlayRef.current = true;
+      
+      // If stream is already loaded and not loading, play it
+      if (audio.src && !isLoadingRef.current) {
+        audio.play().then(() => {
+          console.log('[RadioPlayer] Playback resumed successfully');
+        }).catch((error) => {
+          console.error('[RadioPlayer] Play error:', error);
+          if (error.name !== 'NotAllowedError') {
+            setPlaybackState(PLAYBACK_STATE.STOPPED);
+          }
+        });
+      }
+    } else if (playbackState === PLAYBACK_STATE.STOPPED) {
       console.log('[RadioPlayer] Stopping playback');
+      shouldPlayRef.current = false;
       audio.pause();
     }
   }, [playbackState]);
