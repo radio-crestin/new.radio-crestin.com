@@ -151,14 +151,22 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('[RadioPlayer] HLS manifest parsed, attempting to play');
-        audio.play().then(() => {
-          console.log('[RadioPlayer] HLS playback started successfully');
+        // Only auto-play if user started playback
+        if (playbackState === PLAYBACK_STATE.STARTED) {
+          audio.play().then(() => {
+            console.log('[RadioPlayer] HLS playback started successfully');
+            isLoadingRef.current = false;
+          }).catch((error) => {
+            console.error('[RadioPlayer] HLS play error:', error);
+            isLoadingRef.current = false;
+            // Don't stop on autoplay errors - wait for user interaction
+            if (error.name !== 'NotAllowedError') {
+              setPlaybackState(PLAYBACK_STATE.STOPPED);
+            }
+          });
+        } else {
           isLoadingRef.current = false;
-        }).catch((error) => {
-          console.error('[RadioPlayer] HLS play error:', error);
-          isLoadingRef.current = false;
-          setPlaybackState(PLAYBACK_STATE.STOPPED);
-        });
+        }
       });
 
       hls.on(Hls.Events.ERROR, (_, data) => {
@@ -174,15 +182,22 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       console.log('[RadioPlayer] Loading direct stream:', currentStreamUrl);
       // Direct stream playback
       audio.src = currentStreamUrl;
-      audio.play().then(() => {
-        console.log('[RadioPlayer] Direct stream playback started successfully');
+      // Only auto-play if user started playback
+      if (playbackState === PLAYBACK_STATE.STARTED) {
+        audio.play().then(() => {
+          console.log('[RadioPlayer] Direct stream playback started successfully');
+          isLoadingRef.current = false;
+        }).catch((error) => {
+          console.error('[RadioPlayer] Direct stream play error:', error);
+          isLoadingRef.current = false;
+          // Don't try next stream on autoplay errors - wait for user interaction
+          if (error.name !== 'NotAllowedError') {
+            tryNextStream();
+          }
+        });
+      } else {
         isLoadingRef.current = false;
-      }).catch((error) => {
-        console.error('[RadioPlayer] Direct stream play error:', error);
-        isLoadingRef.current = false;
-        // Try next stream on error
-        tryNextStream();
-      });
+      }
     }
 
     return () => {
@@ -194,7 +209,7 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStreamUrl, currentStreamIndex]);
+  }, [currentStreamUrl, currentStreamIndex, playbackState]);
 
   // Handle play/pause separately - only depend on playbackState to avoid interruptions
   useEffect(() => {
@@ -207,6 +222,10 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
       if (audio.src) {
         audio.play().catch((error) => {
           console.error('[RadioPlayer] Play error in play/pause effect:', error);
+          // Show user-friendly message for autoplay errors
+          if (error.name === 'NotAllowedError') {
+            console.log('[RadioPlayer] Autoplay blocked - user needs to click play button');
+          }
         });
       }
     } else if (playbackState === PLAYBACK_STATE.STOPPED) {
@@ -361,7 +380,8 @@ export default function RadioPlayer({ initialStation }: RadioPlayerProps) {
               readyState: audio.readyState,
               networkState: audio.networkState
             });
-            if (!isLoadingRef.current) {
+            // Only try next stream for actual network/decode errors, not permission errors
+            if (!isLoadingRef.current && audio.error?.code !== 4) { // 4 = MEDIA_ERR_SRC_NOT_SUPPORTED (includes autoplay)
               tryNextStream();
             }
           }}
